@@ -1,12 +1,15 @@
 import uvicorn
+from app.api.exception_handlers import provider_exception_handler
+from app.api.v1.x.base import router as x_router
+from app.core.exceptions import ProviderError
+from app.settings import Settings
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from app.settings import Settings
 
 settings = Settings()
 app = FastAPI()
 
+app.add_exception_handler(ProviderError, provider_exception_handler)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors.origins,
@@ -16,11 +19,7 @@ app.add_middleware(
     max_age=settings.cors.max_age,
 )
 
-
-@app.get("/health")
-def health_check():
-    """Basic health check endpoint."""
-    return {"status": "ok"}
+app.include_router(x_router)
 
 
 if __name__ == "__main__":
