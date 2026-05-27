@@ -2,6 +2,17 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+class XProviders(BaseSettings):
+    """
+    X/Twitter provider API keys and configuration.
+    Each provider has its own prefixed environment variables.
+    """
+
+    model_config = SettingsConfigDict(env_prefix="PROVIDER_X_")
+    twitterapi_io_api_key: str = Field(default="")
+    twitterapi_io_base_url: str = Field(default="")
+
+
 class CORSConfig(BaseSettings):
     """
     CORS middleware configuration.
@@ -14,16 +25,6 @@ class CORSConfig(BaseSettings):
     allow_methods: list[str] = Field(default=["*"])
     allow_headers: list[str] = Field(default=["*"])
     max_age: int = Field(default=600)
-
-
-class XProviders(BaseSettings):
-    """
-    X/Twitter provider API keys and configuration.
-    Each provider has its own prefixed environment variables.
-    """
-
-    model_config = SettingsConfigDict(env_prefix="PROVIDER_X_")
-    twitterapi_io: str = Field(default="")
 
 
 class Settings(BaseSettings):
