@@ -40,13 +40,41 @@ class TwitterAPIIOClient:
         cursor: str | None = None,
     ) -> dict[str, Any]:
         """
-        Search raw users by query with optional cursor pagination.
+        Search raw users by query with optional pagination.
         """
         params = {"query": query}
         if cursor is not None:
             params["cursor"] = cursor
         response = await self.http_client.get(
             f"{self.base_url}/twitter/user/search",
+            headers={"X-API-Key": self.api_key},
+            params=params,
+        )
+        raise_for_status(response)
+        payload = self._parse_json(response)
+        self._raise_for_semantic_error(payload)
+        return payload
+
+    async def get_user_last_tweets(
+        self,
+        username_or_userid: str,
+        cursor: str | None = None,
+        include_replies: bool = False,
+    ) -> dict[str, Any]:
+        """
+        Get raw latest tweets by user ID or username with optional pagination.
+        """
+        params: dict[str, Any] = {}
+        if username_or_userid.isdigit():
+            params["userId"] = username_or_userid
+        else:
+            params["userName"] = username_or_userid
+        if cursor is not None:
+            params["cursor"] = cursor
+        if include_replies:
+            params["includeReplies"] = "true"
+        response = await self.http_client.get(
+            f"{self.base_url}/twitter/user/last_tweets",
             headers={"X-API-Key": self.api_key},
             params=params,
         )
