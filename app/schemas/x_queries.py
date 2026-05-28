@@ -18,3 +18,9 @@ class SearchAccountsQuery(XQuery):
     query: str
     limit: int = Field(ge=10)
     max_runtime_sec: int | None = Field(default=None, ge=1)
+
+
+class GetAccountPostsQuery(XQuery):
+    username_or_userid: str
+    limit: int = Field(ge=10)
+    include_replies: bool = False
