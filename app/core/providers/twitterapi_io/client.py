@@ -34,6 +34,27 @@ class TwitterAPIIOClient:
         self._raise_for_semantic_error(payload)
         return payload
 
+    async def search_users(
+        self,
+        query: str,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Search raw users by query with optional cursor pagination.
+        """
+        params = {"query": query}
+        if cursor is not None:
+            params["cursor"] = cursor
+        response = await self.http_client.get(
+            f"{self.base_url}/twitter/user/search",
+            headers={"X-API-Key": self.api_key},
+            params=params,
+        )
+        raise_for_status(response)
+        payload = self._parse_json(response)
+        self._raise_for_semantic_error(payload)
+        return payload
+
     def _parse_json(self, response: httpx.Response) -> dict[str, Any]:
         try:
             payload = response.json()
