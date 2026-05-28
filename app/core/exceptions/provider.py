@@ -1,4 +1,16 @@
 from app.core.exceptions.base import AppError
+from enum import Enum
+
+
+class ErrorCode(str, Enum):
+    """
+    Standardized error codes for provider operations.
+    """
+
+    RATE_LIMIT = 429
+    PAYMENT_REQUIRED = 402
+    INVALID_RESPONSE = 502
+    UNAVAILABLE = 503
 
 
 class ProviderError(AppError):

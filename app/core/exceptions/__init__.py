@@ -1,5 +1,6 @@
 from app.core.exceptions.base import AppError
 from app.core.exceptions.provider import (
+    ErrorCode,
     ProviderAuthenticationError,
     ProviderConfigurationError,
     ProviderError,
@@ -12,9 +13,10 @@ from app.core.exceptions.x import XAccountNotFoundError
 
 __all__ = [
     "AppError",
+    "ErrorCode",
+    "ProviderAuthenticationError",
     "ProviderError",
     "ProviderConfigurationError",
-    "ProviderAuthenticationError",
     "ProviderPaymentRequiredError",
     "ProviderRateLimitError",
     "ProviderResponseError",
