@@ -1,5 +1,30 @@
-from pydantic import Field
+from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class PostgresConfig(BaseSettings):
+    """
+    PostgreSQL database configuration.
+    Reads POSTGRES_* variables from environment.
+    """
+
+    model_config = SettingsConfigDict(env_prefix="POSTGRES_")
+    host: str = Field(default="localhost")
+    port: int = Field(default=5432)
+    db: str = Field(default="x_api_integration")
+    user: str = Field(default="postgres")
+    password: str = Field(default="postgres")
+
+    @computed_field
+    @property
+    def database_url(self) -> str:
+        """
+        Generate PostgreSQL async connection URL.
+        """
+        return (
+            f"postgresql+asyncpg://{self.user}:"
+            f"{self.password}@{self.host}:{self.port}/{self.db}"
+        )
 
 
 class XProviders(BaseSettings):
@@ -9,8 +34,8 @@ class XProviders(BaseSettings):
     """
 
     model_config = SettingsConfigDict(env_prefix="PROVIDER_X_")
-    twitterapi_io_api_key: str = Field(default="")
-    twitterapi_io_base_url: str = Field(default="")
+    twitterapi_io_api_key: str = Field(min_length=1)
+    twitterapi_io_base_url: str = Field(min_length=1)
 
 
 class CORSConfig(BaseSettings):
@@ -38,3 +63,4 @@ class Settings(BaseSettings):
     port: int = Field(default=8000)
     cors: CORSConfig = Field(default_factory=CORSConfig)
     providers: XProviders = Field(default_factory=XProviders)
+    postgres: PostgresConfig = Field(default_factory=PostgresConfig)
