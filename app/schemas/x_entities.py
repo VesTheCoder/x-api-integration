@@ -1,10 +1,6 @@
+from app.schemas.x_queries import XProviderKey
 from datetime import datetime
-from enum import StrEnum
 from pydantic import BaseModel
-
-
-class XProviderKey(StrEnum):
-    twitterapi_io = "twitterapi_io"
 
 
 class XAccountInfo(BaseModel):
@@ -28,10 +24,8 @@ class ProviderRunMetadata(BaseModel):
     provider_key: XProviderKey
     provider_run_id: str | None = None
     input_query: str
-    estimated_cost: float | None = None
-    actual_cost: float | None = None
     latency_ms: int
-    error_code: str | None = None
+    error_code: int | None = None
     error_message: str | None = None
     fetched_at: datetime
 
@@ -39,3 +33,15 @@ class ProviderRunMetadata(BaseModel):
 class XAccountInfoResult(BaseModel):
     data: XAccountInfo
     metadata: ProviderRunMetadata
+
+
+class XAccountsSearchMetadata(ProviderRunMetadata):
+    requested_limit: int
+    returned_count: int
+    error_code: int | None = None
+    error_message: str | None = None
+
+
+class XAccountsSearchResult(BaseModel):
+    data: list[XAccountInfo]
+    metadata: XAccountsSearchMetadata
