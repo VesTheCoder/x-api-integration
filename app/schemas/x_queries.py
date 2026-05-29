@@ -24,3 +24,9 @@ class GetAccountPostsQuery(XQuery):
     username_or_userid: str
     limit: int = Field(ge=10)
     include_replies: bool = False
+
+
+class GetPostsQuery(XQuery):
+    urls_or_ids: str = Field(
+        description="Tweet IDs or URLs (comma-separated). Example: 123456789 or 987654321,https://x.com/username/status/123456789"
+    )
