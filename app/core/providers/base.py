@@ -1,5 +1,9 @@
 from abc import ABC, abstractmethod
-from app.schemas import XAccountInfoResult, XAccountPostsResult, XAccountsSearchResult
+from app.schemas import (
+    XAccountInfoResult,
+    XAccountsSearchResult,
+    XPostsResult,
+)
 
 
 class XProvider(ABC):
@@ -30,7 +34,13 @@ class XProvider(ABC):
         username_or_userid: str,
         limit: int,
         include_replies: bool = False,
-    ) -> XAccountPostsResult:
+    ) -> XPostsResult:
         """
         Get normalized posts from an X account.
+        """
+
+    @abstractmethod
+    async def get_posts(self, urls_or_ids: str) -> XPostsResult:
+        """
+        Get normalized posts by URLs or IDs.
         """
