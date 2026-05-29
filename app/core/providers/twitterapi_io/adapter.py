@@ -1,5 +1,5 @@
 from app.core.exceptions import ProviderResponseError, XAccountNotFoundError
-from app.schemas import XAccountInfo
+from app.schemas import XAccountInfo, XPost
 from typing import Any
 
 
@@ -30,6 +30,26 @@ class TwitterAPIIOAdapter:
                 continue
             accounts.append(self._to_account_info_from_user(item))
         return accounts
+
+    def to_account_posts(self, payload: dict[str, Any]) -> list[XPost]:
+        """
+        Convert raw tweets payload into normalized post list.
+        """
+        data = payload.get("data") or payload
+        if not isinstance(data, dict):
+            raise ProviderResponseError("Provider response has invalid tweets data")
+        posts: list[XPost] = []
+        pin_tweet = data.get("pin_tweet")
+        if isinstance(pin_tweet, dict):
+            posts.append(self._to_post_from_tweet(pin_tweet))
+        tweets = data.get("tweets")
+        if not isinstance(tweets, list):
+            raise ProviderResponseError("Provider response has invalid tweets data")
+        for tweet in tweets:
+            if not isinstance(tweet, dict):
+                raise ProviderResponseError("Provider response has invalid tweet item")
+            posts.append(self._to_post_from_tweet(tweet))
+        return posts
 
     def _extract_user(self, payload: dict[str, Any]) -> dict[str, Any]:
         user = payload.get("data") or payload.get("user") or payload
@@ -101,3 +121,24 @@ class TwitterAPIIOAdapter:
             if value is not None:
                 return bool(value)
         return None
+
+    def _to_post_from_tweet(self, tweet: dict[str, Any]) -> XPost:
+        """
+        Convert a single raw tweet dict into normalized XPost.
+        """
+        author = tweet.get("author") or {}
+        if not isinstance(author, dict):
+            author = {}
+        return XPost(
+            id=self._get_str(tweet, "id"),
+            text=self._get_str(tweet, "text"),
+            url=self._get_str(tweet, "url"),
+            views=self._get_int(tweet, "viewCount"),
+            likes=self._get_int(tweet, "likeCount"),
+            retweets=self._get_int(tweet, "retweetCount"),
+            quotes=self._get_int(tweet, "quoteCount"),
+            replies=self._get_int(tweet, "replyCount"),
+            account_name=self._get_str(author, "name"),
+            account_link=self._get_str(author, "url"),
+            created_at=self._get_str(tweet, "createdAt"),
+        )
