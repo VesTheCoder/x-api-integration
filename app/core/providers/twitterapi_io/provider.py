@@ -2,7 +2,11 @@ from app.core.exceptions import ErrorCode, ProviderRateLimitError
 from app.core.providers.base import XProvider
 from app.core.providers.twitterapi_io.adapter import TwitterAPIIOAdapter
 from app.core.providers.twitterapi_io.client import TwitterAPIIOClient
-from app.core.utils import get_post_ids_from_urls, has_exceeded_max_runtime
+from app.core.utils import (
+    cursor_pagination,
+    get_post_ids_from_urls,
+    has_exceeded_max_runtime,
+)
 from app.schemas import (
     ProviderRunMetadata,
     XAccountInfoResult,
@@ -13,6 +17,7 @@ from app.schemas import (
 )
 from datetime import UTC, datetime
 from time import perf_counter
+from typing import Any
 
 
 class TwitterAPIIOProvider(XProvider):
@@ -56,30 +61,25 @@ class TwitterAPIIOProvider(XProvider):
         Search accounts by query and return normalized results via adapter.
         """
         started_at = perf_counter()
-        cursor: str | None = None
         accounts = []
         error_code = None
         error_message = None
 
-        while len(accounts) < limit:
-            try:
-                payload = await self.client.search_users(query=query, cursor=cursor)
+        async def fetch_page(cursor: str | None) -> dict[str, Any]:
+            return await self.client.search_users(query=query, cursor=cursor)
+
+        try:
+            async for payload in cursor_pagination(fetch_page):
                 accounts.extend(self.adapter.to_accounts_search_results(payload))
                 if len(accounts) >= limit:
                     break
-                if not payload.get("has_next_page"):
-                    break
-                cursor = payload.get("next_cursor")
-                if not cursor:
-                    break
                 if has_exceeded_max_runtime(started_at, max_runtime_sec):
                     break
-            except ProviderRateLimitError:
-                if not accounts:
-                    raise
-                error_code = ErrorCode.RATE_LIMIT
-                error_message = "Provider rate limit reached"
-                break
+        except ProviderRateLimitError:
+            if not accounts:
+                raise
+            error_code = ErrorCode.RATE_LIMIT
+            error_message = "Provider rate limit reached"
 
         latency_ms = int((perf_counter() - started_at) * 1000)
         data = accounts[:limit]
@@ -107,32 +107,27 @@ class TwitterAPIIOProvider(XProvider):
         Get normalized posts from an X account via adapter.
         """
         started_at = perf_counter()
-        cursor: str | None = None
         posts = []
         error_code = None
         error_message = None
 
-        while len(posts) < limit:
-            try:
-                payload = await self.client.get_user_last_tweets(
-                    username_or_userid=username_or_userid,
-                    cursor=cursor,
-                    include_replies=include_replies,
-                )
+        async def fetch_page(cursor: str | None) -> dict[str, Any]:
+            return await self.client.get_user_last_tweets(
+                username_or_userid=username_or_userid,
+                cursor=cursor,
+                include_replies=include_replies,
+            )
+
+        try:
+            async for payload in cursor_pagination(fetch_page):
                 posts.extend(self.adapter.to_account_posts(payload))
                 if len(posts) >= limit:
                     break
-                if not payload.get("has_next_page"):
-                    break
-                cursor = payload.get("next_cursor")
-                if not cursor:
-                    break
-            except ProviderRateLimitError:
-                if not posts:
-                    raise
-                error_code = ErrorCode.RATE_LIMIT
-                error_message = "Provider rate limit reached"
-                break
+        except ProviderRateLimitError:
+            if not posts:
+                raise
+            error_code = ErrorCode.RATE_LIMIT
+            error_message = "Provider rate limit reached"
 
         latency_ms = int((perf_counter() - started_at) * 1000)
         data = posts[:limit]
