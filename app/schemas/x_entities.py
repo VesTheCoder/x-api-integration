@@ -16,8 +16,6 @@ class ProviderRunMetadata(BaseModel):
 class XSearchMetadata(ProviderRunMetadata):
     requested_limit: int
     returned_count: int
-    error_code: int | None = None
-    error_message: str | None = None
 
 
 class XAccountInfo(BaseModel):
@@ -61,6 +59,6 @@ class XAccountsSearchResult(BaseModel):
     metadata: XSearchMetadata
 
 
-class XAccountPostsResult(BaseModel):
+class XPostsResult(BaseModel):
     data: list[XPost]
-    metadata: XSearchMetadata
+    metadata: ProviderRunMetadata
