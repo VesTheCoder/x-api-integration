@@ -100,24 +100,24 @@ class TwitterAPIIOAdapter:
     def _to_account_info_from_user(self, user: dict[str, Any]) -> XAccountInfo:
         raw = TwitterAPIIOUser.model_validate(user)
 
-        if not raw.user_name:
-            raise ProviderResponseError("Provider response has no username")
+        handle = raw.user_name or raw.screen_name or ""
 
         return XAccountInfo(
             id=raw.id,
-            username=raw.user_name,
-            display_name=raw.name or raw.user_name,
-            description=raw.description,
-            url=raw.url or f"https://x.com/{raw.user_name}",
+            username=handle,
+            display_name=raw.name or handle,
+            description=raw.description or None,
+            description_url=raw.url or None,
             followers_count=raw.followers,
             following_count=raw.following,
             posts_count=raw.statuses_count,
             media_count=raw.media_count,
-            location=raw.location,
-            profile_image_url=raw.profile_picture,
+            location=raw.location or None,
+            profile_image_url=raw.profile_picture or None,
             created_at=raw.created_at,
             is_verified=raw.verified,
             is_blue_verified=raw.is_blue_verified,
+            account_url=f"https://x.com/intent/user?user_id={raw.id}",
         )
 
     def _to_post_from_tweet(self, tweet: dict[str, Any]) -> XPost:
@@ -136,6 +136,6 @@ class TwitterAPIIOAdapter:
             quotes=raw.quote_count,
             replies=raw.reply_count,
             account_name=raw.author.name,
-            account_link=raw.author.url,
+            account_url=raw.author.url,
             created_at=raw.created_at,
         )

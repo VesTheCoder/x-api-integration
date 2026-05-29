@@ -22,17 +22,18 @@ class XAccountInfo(BaseModel):
     id: str
     username: str
     display_name: str
-    description: str
-    url: str
+    description: str | None = None
+    description_url: str | None = None
     followers_count: int
     following_count: int
     posts_count: int
     media_count: int | None = None
-    location: str
-    profile_image_url: str
+    location: str | None = None
+    profile_image_url: str | None = None
     created_at: str
     is_verified: bool | None = None
     is_blue_verified: bool | None = None
+    account_url: str
 
 
 class XPost(BaseModel):
@@ -45,7 +46,7 @@ class XPost(BaseModel):
     quotes: int
     replies: int
     account_name: str
-    account_link: str
+    account_url: str
     created_at: str
 
 
