@@ -1,7 +1,15 @@
 from app.core.dependencies.fastapi import get_provider_from_query, get_x_service
 from app.core.providers.base import XProvider
-from app.schemas.x_entities import XAccountInfoResult, XAccountsSearchResult
-from app.schemas.x_queries import GetAccountInfoQuery, SearchAccountsQuery
+from app.schemas.x_entities import (
+    XAccountInfoResult,
+    XAccountPostsResult,
+    XAccountsSearchResult,
+)
+from app.schemas.x_queries import (
+    GetAccountInfoQuery,
+    GetAccountPostsQuery,
+    SearchAccountsQuery,
+)
 from app.services.x_service import XService
 from fastapi import APIRouter, Depends
 from typing import Annotated
@@ -23,6 +31,23 @@ async def search_accounts(
         query=params.query,
         limit=params.limit,
         max_runtime_sec=params.max_runtime_sec,
+    )
+
+
+@router.get("/posts", response_model=XAccountPostsResult)
+async def get_account_posts(
+    params: Annotated[GetAccountPostsQuery, Depends()],
+    service: Annotated[XService, Depends(get_x_service)],
+    provider: Annotated[XProvider, Depends(get_provider_from_query)],
+) -> XAccountPostsResult:
+    """
+    Get posts from an X account.
+    """
+    return await service.get_account_posts(
+        provider=provider,
+        username_or_userid=params.username_or_userid,
+        limit=params.limit,
+        include_replies=params.include_replies,
     )
 
 
