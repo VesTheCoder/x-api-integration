@@ -51,6 +51,20 @@ class TwitterAPIIOAdapter:
             posts.append(self._to_post_from_tweet(tweet))
         return posts
 
+    def to_posts(self, payload: dict[str, Any]) -> list[XPost]:
+        """
+        Convert raw tweets by IDs payload into normalized post list.
+        """
+        tweets = payload.get("tweets")
+        if not isinstance(tweets, list):
+            raise ProviderResponseError("Provider response has invalid tweets data")
+        posts: list[XPost] = []
+        for tweet in tweets:
+            if not isinstance(tweet, dict):
+                raise ProviderResponseError("Provider response has invalid tweet item")
+            posts.append(self._to_post_from_tweet(tweet))
+        return posts
+
     def _extract_user(self, payload: dict[str, Any]) -> dict[str, Any]:
         user = payload.get("data") or payload.get("user") or payload
         if not isinstance(user, dict):
