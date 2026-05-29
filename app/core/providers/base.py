@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from app.schemas import XAccountInfoResult, XAccountsSearchResult
+from app.schemas import XAccountInfoResult, XAccountPostsResult, XAccountsSearchResult
 
 
 class XProvider(ABC):
@@ -22,4 +22,15 @@ class XProvider(ABC):
     ) -> XAccountsSearchResult:
         """
         Search for normalized X accounts.
+        """
+
+    @abstractmethod
+    async def get_account_posts(
+        self,
+        username_or_userid: str,
+        limit: int,
+        include_replies: bool = False,
+    ) -> XAccountPostsResult:
+        """
+        Get normalized posts from an X account.
         """
