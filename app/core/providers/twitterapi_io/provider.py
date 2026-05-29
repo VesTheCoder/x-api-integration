@@ -2,12 +2,12 @@ from app.core.exceptions import ErrorCode, ProviderRateLimitError
 from app.core.providers.base import XProvider
 from app.core.providers.twitterapi_io.adapter import TwitterAPIIOAdapter
 from app.core.providers.twitterapi_io.client import TwitterAPIIOClient
-from app.core.utils import has_exceeded_max_runtime
+from app.core.utils import get_post_ids_from_urls, has_exceeded_max_runtime
 from app.schemas import (
     ProviderRunMetadata,
     XAccountInfoResult,
-    XAccountPostsResult,
     XAccountsSearchResult,
+    XPostsResult,
     XProviderKey,
     XSearchMetadata,
 )
@@ -102,7 +102,7 @@ class TwitterAPIIOProvider(XProvider):
         username_or_userid: str,
         limit: int,
         include_replies: bool = False,
-    ) -> XAccountPostsResult:
+    ) -> XPostsResult:
         """
         Get normalized posts from an X account via adapter.
         """
@@ -136,7 +136,7 @@ class TwitterAPIIOProvider(XProvider):
 
         latency_ms = int((perf_counter() - started_at) * 1000)
         data = posts[:limit]
-        return XAccountPostsResult(
+        return XPostsResult(
             data=data,
             metadata=XSearchMetadata(
                 provider_key=XProviderKey.twitterapi_io,
@@ -147,5 +147,24 @@ class TwitterAPIIOProvider(XProvider):
                 returned_count=len(data),
                 error_code=error_code,
                 error_message=error_message,
+            ),
+        )
+
+    async def get_posts(self, urls_or_ids: str) -> XPostsResult:
+        """
+        Get normalized posts by URLs or IDs.
+        """
+        started_at = perf_counter()
+        normalized_ids = get_post_ids_from_urls(urls_or_ids)
+        payload = await self.client.get_tweets_by_ids(normalized_ids)
+        posts = self.adapter.to_posts(payload)
+        latency_ms = int((perf_counter() - started_at) * 1000)
+        return XPostsResult(
+            data=posts,
+            metadata=ProviderRunMetadata(
+                provider_key=XProviderKey.twitterapi_io,
+                input_query=urls_or_ids,
+                latency_ms=latency_ms,
+                fetched_at=datetime.now(UTC),
             ),
         )
