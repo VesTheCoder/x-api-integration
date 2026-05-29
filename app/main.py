@@ -1,3 +1,4 @@
+import httpx
 import uvicorn
 from app.api.exception_handlers import provider_exception_handler
 from app.api.v1.x.base import router as x_router
@@ -14,11 +15,13 @@ settings = Settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Manage database connection lifecycle.
+    Manage database and HTTP client lifecycle.
     """
     await init_database(settings.postgres.database_url)
+    app.state.http_client = httpx.AsyncClient(timeout=None)
     yield
     await close_database()
+    await app.state.http_client.aclose()
 
 
 app = FastAPI(lifespan=lifespan)
