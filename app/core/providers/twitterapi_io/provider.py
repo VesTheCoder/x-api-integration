@@ -6,9 +6,10 @@ from app.core.utils import has_exceeded_max_runtime
 from app.schemas import (
     ProviderRunMetadata,
     XAccountInfoResult,
-    XAccountsSearchMetadata,
+    XAccountPostsResult,
     XAccountsSearchResult,
     XProviderKey,
+    XSearchMetadata,
 )
 from datetime import UTC, datetime
 from time import perf_counter
@@ -84,9 +85,62 @@ class TwitterAPIIOProvider(XProvider):
         data = accounts[:limit]
         return XAccountsSearchResult(
             data=data,
-            metadata=XAccountsSearchMetadata(
+            metadata=XSearchMetadata(
                 provider_key=XProviderKey.twitterapi_io,
                 input_query=query,
+                latency_ms=latency_ms,
+                fetched_at=datetime.now(UTC),
+                requested_limit=limit,
+                returned_count=len(data),
+                error_code=error_code,
+                error_message=error_message,
+            ),
+        )
+
+    async def get_account_posts(
+        self,
+        username_or_userid: str,
+        limit: int,
+        include_replies: bool = False,
+    ) -> XAccountPostsResult:
+        """
+        Get normalized posts from an X account via adapter.
+        """
+        started_at = perf_counter()
+        cursor: str | None = None
+        posts = []
+        error_code = None
+        error_message = None
+
+        while len(posts) < limit:
+            try:
+                payload = await self.client.get_user_last_tweets(
+                    username_or_userid=username_or_userid,
+                    cursor=cursor,
+                    include_replies=include_replies,
+                )
+                posts.extend(self.adapter.to_account_posts(payload))
+                if len(posts) >= limit:
+                    break
+                if not payload.get("has_next_page"):
+                    break
+                cursor = payload.get("next_cursor")
+                if not cursor:
+                    break
+            except ProviderRateLimitError:
+                if not posts:
+                    raise
+                error_code = ErrorCode.RATE_LIMIT
+                error_message = "Provider rate limit reached"
+                break
+
+        latency_ms = int((perf_counter() - started_at) * 1000)
+        data = posts[:limit]
+        return XAccountPostsResult(
+            data=data,
+            metadata=XSearchMetadata(
+                provider_key=XProviderKey.twitterapi_io,
+                input_query=username_or_userid,
                 latency_ms=latency_ms,
                 fetched_at=datetime.now(UTC),
                 requested_limit=limit,
