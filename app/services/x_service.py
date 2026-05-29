@@ -1,5 +1,5 @@
 from app.core.providers.base import XProvider
-from app.schemas import XAccountInfoResult, XAccountPostsResult, XAccountsSearchResult
+from app.schemas import XAccountInfoResult, XAccountsSearchResult, XPostsResult
 
 
 class XService:
@@ -35,10 +35,20 @@ class XService:
         username_or_userid: str,
         limit: int,
         include_replies: bool = False,
-    ) -> XAccountPostsResult:
+    ) -> XPostsResult:
         """
         Get posts from an X account.
         """
         return await provider.get_account_posts(
             username_or_userid, limit, include_replies
         )
+
+    async def get_posts(
+        self,
+        provider: XProvider,
+        urls_or_ids: str,
+    ) -> XPostsResult:
+        """
+        Get posts by URLs or IDs.
+        """
+        return await provider.get_posts(urls_or_ids)
