@@ -57,6 +57,7 @@ class TwitterAPIIOTweet(BaseModel):
     retweet_count: int = Field(default=0, alias="retweetCount")
     quote_count: int = Field(default=0, alias="quoteCount")
     reply_count: int = Field(default=0, alias="replyCount")
+    is_reply: bool = Field(default=False, alias="isReply")
     created_at: str = Field(default="", alias="createdAt")
     author: TwitterAPIIOAuthor = Field(default_factory=TwitterAPIIOAuthor)
 
