@@ -97,6 +97,33 @@ class TwitterAPIIOClient:
         self._raise_for_semantic_error(payload)
         return payload
 
+    async def get_tweet_replies(
+        self,
+        tweet_id: str,
+        since: int | None,
+        until: int | None,
+        cursor: str | None,
+    ) -> dict[str, Any]:
+        """
+        Get raw replies for a tweet with optional time filters and pagination.
+        """
+        params: dict[str, Any] = {"tweetId": tweet_id}
+        if since is not None:
+            params["sinceTime"] = since
+        if until is not None:
+            params["untilTime"] = until
+        if cursor is not None:
+            params["cursor"] = cursor
+        response = await self.http_client.get(
+            f"{self.base_url}/twitter/tweet/replies",
+            headers={"X-API-Key": self.api_key},
+            params=params,
+        )
+        raise_for_status(response)
+        payload = self._parse_json(response)
+        self._raise_for_semantic_error(payload)
+        return payload
+
     def _parse_json(self, response: httpx.Response) -> dict[str, Any]:
         try:
             payload = response.json()
