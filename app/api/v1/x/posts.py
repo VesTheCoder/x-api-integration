@@ -23,7 +23,16 @@ async def get_posts(
     )
 
 
-@router.get("/replies", response_model=XPostsResult)
+@router.get(
+    "/replies",
+    response_model=XPostsResult,
+    description=(
+        "Get replies for a specific X tweet. "
+        "Time filters accept Unix timestamps (e.g. 1748542800) "
+        "or ISO 8601 / RFC 3339 strings "
+        "(e.g. 2026-05-29T09:40:00.000Z, 2026-05-29T09:40:00+00:00, or 2026-05-29)."
+    ),
+)
 async def get_replies(
     params: Annotated[GetRepliesQuery, Depends()],
     service: Annotated[XService, Depends(get_x_service)],
