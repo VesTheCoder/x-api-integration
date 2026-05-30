@@ -41,6 +41,7 @@ class TwitterAPIIOProvider(XProvider):
         payload = await self.client.get_user_info(username)
         account = self.adapter.to_account_info(payload)
         latency_ms = int((perf_counter() - started_at) * 1000)
+
         return XAccountInfoResult(
             data=account,
             metadata=ProviderRunMetadata(
@@ -54,7 +55,7 @@ class TwitterAPIIOProvider(XProvider):
     async def search_accounts(
         self,
         query: str,
-        limit: int,
+        limit: int | None,
         max_runtime_sec: int | None = None,
     ) -> XAccountsSearchResult:
         """
@@ -71,10 +72,11 @@ class TwitterAPIIOProvider(XProvider):
         try:
             async for payload in cursor_pagination(fetch_page):
                 accounts.extend(self.adapter.to_accounts_search_results(payload))
-                if len(accounts) >= limit:
+                if limit is not None and len(accounts) >= limit:
                     break
                 if has_exceeded_max_runtime(started_at, max_runtime_sec):
                     break
+
         except ProviderRateLimitError:
             if not accounts:
                 raise
@@ -82,7 +84,8 @@ class TwitterAPIIOProvider(XProvider):
             error_message = "Provider rate limit reached"
 
         latency_ms = int((perf_counter() - started_at) * 1000)
-        data = accounts[:limit]
+        data = accounts[:limit] if limit is not None else accounts
+
         return XAccountsSearchResult(
             data=data,
             metadata=XSearchMetadata(
@@ -100,7 +103,7 @@ class TwitterAPIIOProvider(XProvider):
     async def get_account_posts(
         self,
         username_or_userid: str,
-        limit: int,
+        limit: int | None,
         include_replies: bool = False,
     ) -> XPostsResult:
         """
@@ -121,8 +124,9 @@ class TwitterAPIIOProvider(XProvider):
         try:
             async for payload in cursor_pagination(fetch_page):
                 posts.extend(self.adapter.to_account_posts(payload))
-                if len(posts) >= limit:
+                if limit is not None and len(posts) >= limit:
                     break
+
         except ProviderRateLimitError:
             if not posts:
                 raise
@@ -130,12 +134,69 @@ class TwitterAPIIOProvider(XProvider):
             error_message = "Provider rate limit reached"
 
         latency_ms = int((perf_counter() - started_at) * 1000)
-        data = posts[:limit]
+        data = posts[:limit] if limit is not None else posts
+
         return XPostsResult(
             data=data,
             metadata=XSearchMetadata(
                 provider_key=XProviderKey.twitterapi_io,
                 input_query=username_or_userid,
+                latency_ms=latency_ms,
+                fetched_at=datetime.now(UTC),
+                requested_limit=limit,
+                returned_count=len(data),
+                error_code=error_code,
+                error_message=error_message,
+            ),
+        )
+
+    async def get_replies(
+        self,
+        url_or_id: str,
+        limit: int | None,
+        since: datetime | None,
+        until: datetime | None,
+    ) -> XPostsResult:
+        """
+        Get normalized replies for a specific tweet via adapter.
+        """
+        started_at = perf_counter()
+        tweet_id = get_post_ids_from_urls(url_or_id)
+        replies = []
+        error_code = None
+        error_message = None
+
+        since_unix = int(since.timestamp()) if since is not None else None
+        until_unix = int(until.timestamp()) if until is not None else None
+
+        async def fetch_page(cursor: str | None) -> dict[str, Any]:
+            return await self.client.get_tweet_replies(
+                tweet_id=tweet_id,
+                since=since_unix,
+                until=until_unix,
+                cursor=cursor,
+            )
+
+        try:
+            async for payload in cursor_pagination(fetch_page):
+                replies.extend(self.adapter.to_replies(payload))
+                if limit is not None and len(replies) >= limit:
+                    break
+
+        except ProviderRateLimitError:
+            if not replies:
+                raise
+            error_code = ErrorCode.RATE_LIMIT
+            error_message = "Provider rate limit reached"
+
+        latency_ms = int((perf_counter() - started_at) * 1000)
+        data = replies[:limit] if limit is not None else replies
+
+        return XPostsResult(
+            data=data,
+            metadata=XSearchMetadata(
+                provider_key=XProviderKey.twitterapi_io,
+                input_query=url_or_id,
                 latency_ms=latency_ms,
                 fetched_at=datetime.now(UTC),
                 requested_limit=limit,
@@ -154,6 +215,7 @@ class TwitterAPIIOProvider(XProvider):
         payload = await self.client.get_tweets_by_ids(normalized_ids)
         posts = self.adapter.to_posts(payload)
         latency_ms = int((perf_counter() - started_at) * 1000)
+
         return XPostsResult(
             data=posts,
             metadata=ProviderRunMetadata(
