@@ -4,6 +4,7 @@ from app.schemas import (
     XAccountsSearchResult,
     XPostsResult,
 )
+from datetime import datetime
 
 
 class XProvider(ABC):
@@ -21,7 +22,7 @@ class XProvider(ABC):
     async def search_accounts(
         self,
         query: str,
-        limit: int,
+        limit: int | None,
         max_runtime_sec: int | None = None,
     ) -> XAccountsSearchResult:
         """
@@ -32,7 +33,7 @@ class XProvider(ABC):
     async def get_account_posts(
         self,
         username_or_userid: str,
-        limit: int,
+        limit: int | None,
         include_replies: bool = False,
     ) -> XPostsResult:
         """
@@ -43,4 +44,16 @@ class XProvider(ABC):
     async def get_posts(self, urls_or_ids: str) -> XPostsResult:
         """
         Get normalized posts by URLs or IDs.
+        """
+
+    @abstractmethod
+    async def get_replies(
+        self,
+        url_or_id: str,
+        limit: int | None,
+        since: datetime | None,
+        until: datetime | None,
+    ) -> XPostsResult:
+        """
+        Get normalized replies for a specific tweet.
         """
