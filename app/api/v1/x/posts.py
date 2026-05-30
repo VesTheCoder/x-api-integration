@@ -1,6 +1,6 @@
 from app.core.dependencies.fastapi import get_provider_from_query, get_x_service
 from app.core.providers.base import XProvider
-from app.schemas import GetPostsQuery, XPostsResult
+from app.schemas import GetPostsQuery, GetRepliesQuery, XPostsResult
 from app.services.x_service import XService
 from fastapi import APIRouter, Depends
 from typing import Annotated
@@ -20,4 +20,22 @@ async def get_posts(
     return await service.get_posts(
         provider=provider,
         urls_or_ids=params.urls_or_ids,
+    )
+
+
+@router.get("/replies", response_model=XPostsResult)
+async def get_replies(
+    params: Annotated[GetRepliesQuery, Depends()],
+    service: Annotated[XService, Depends(get_x_service)],
+    provider: Annotated[XProvider, Depends(get_provider_from_query)],
+) -> XPostsResult:
+    """
+    Get replies for a specific X tweet.
+    """
+    return await service.get_replies(
+        provider=provider,
+        url_or_id=params.url_or_id,
+        limit=params.limit,
+        since=params.since,
+        until=params.until,
     )
