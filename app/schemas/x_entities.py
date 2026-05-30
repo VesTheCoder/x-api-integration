@@ -63,4 +63,4 @@ class XAccountsSearchResult(BaseModel):
 
 class XPostsResult(BaseModel):
     data: list[XPost]
-    metadata: ProviderRunMetadata
+    metadata: XSearchMetadata

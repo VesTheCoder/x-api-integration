@@ -218,10 +218,12 @@ class TwitterAPIIOProvider(XProvider):
 
         return XPostsResult(
             data=posts,
-            metadata=ProviderRunMetadata(
+            metadata=XSearchMetadata(
                 provider_key=XProviderKey.twitterapi_io,
                 input_query=urls_or_ids,
                 latency_ms=latency_ms,
                 fetched_at=datetime.now(UTC),
+                requested_limit=None,
+                returned_count=len(posts),
             ),
         )
