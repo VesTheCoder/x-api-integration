@@ -1,4 +1,4 @@
-from app.schemas.x_queries import XProviderKey
+from app.schemas.x_base import XProviderKey
 from datetime import datetime
 from pydantic import BaseModel
 
@@ -14,7 +14,7 @@ class ProviderRunMetadata(BaseModel):
 
 
 class XSearchMetadata(ProviderRunMetadata):
-    requested_limit: int
+    requested_limit: int | None
     returned_count: int
 
 
@@ -47,6 +47,7 @@ class XPost(BaseModel):
     replies: int
     account_name: str
     account_url: str
+    is_reply: bool
     created_at: str
 
 

@@ -1,4 +1,9 @@
 from app.schemas.error import ErrorDTO
+from app.schemas.x_base import (
+    XPaginatedQuery,
+    XProviderKey,
+    XQuery,
+)
 from app.schemas.x_entities import (
     ProviderRunMetadata,
     XAccountInfo,
@@ -12,9 +17,8 @@ from app.schemas.x_queries import (
     GetAccountInfoQuery,
     GetAccountPostsQuery,
     GetPostsQuery,
+    GetRepliesQuery,
     SearchAccountsQuery,
-    XProviderKey,
-    XQuery,
 )
 
 __all__ = [
@@ -29,7 +33,9 @@ __all__ = [
     "GetAccountInfoQuery",
     "GetAccountPostsQuery",
     "GetPostsQuery",
+    "GetRepliesQuery",
     "SearchAccountsQuery",
     "XProviderKey",
     "XQuery",
+    "XPaginatedQuery",
 ]

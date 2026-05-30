@@ -1,28 +1,19 @@
-from enum import StrEnum
-from pydantic import BaseModel, Field
-
-
-class XProviderKey(StrEnum):
-    twitterapi_io = "twitterapi_io"
-
-
-class XQuery(BaseModel):
-    provider_key: XProviderKey = Field(default=XProviderKey.twitterapi_io)
+from app.schemas.x_base import XPaginatedQuery, XQuery
+from datetime import datetime
+from pydantic import Field
 
 
 class GetAccountInfoQuery(XQuery):
     pass
 
 
-class SearchAccountsQuery(XQuery):
+class SearchAccountsQuery(XPaginatedQuery):
     query: str
-    limit: int = Field(ge=10)
     max_runtime_sec: int | None = Field(default=None, ge=1)
 
 
-class GetAccountPostsQuery(XQuery):
+class GetAccountPostsQuery(XPaginatedQuery):
     username_or_userid: str
-    limit: int = Field(ge=10)
     include_replies: bool = False
 
 
@@ -30,3 +21,9 @@ class GetPostsQuery(XQuery):
     urls_or_ids: str = Field(
         description="Tweet IDs or URLs (comma-separated). Example: 123456789 or 987654321,https://x.com/username/status/123456789"
     )
+
+
+class GetRepliesQuery(XPaginatedQuery):
+    url_or_id: str
+    since: datetime | None = None
+    until: datetime | None = None
