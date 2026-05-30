@@ -1,6 +1,7 @@
 from app.core.exceptions import ProviderResponseError, XAccountNotFoundError
 from app.core.providers.twitterapi_io.schemas import TwitterAPIIOTweet, TwitterAPIIOUser
 from app.schemas import XAccountInfo, XPost
+from pydantic import ValidationError
 from typing import Any
 
 
@@ -53,37 +54,32 @@ class TwitterAPIIOAdapter:
         if isinstance(pin_tweet, dict):
             posts.append(self._to_post_from_tweet(pin_tweet))
 
-        tweets = data.get("tweets")
-
-        if not isinstance(tweets, list):
-            raise ProviderResponseError("Provider response has invalid tweets data")
-
-        for tweet in tweets:
-            if not isinstance(tweet, dict):
-                raise ProviderResponseError("Provider response has invalid tweet item")
-
-            posts.append(self._to_post_from_tweet(tweet))
-
+        posts.extend(self._to_posts_from_raw_tweets(data.get("tweets")))
         return posts
 
     def to_posts(self, payload: dict[str, Any]) -> list[XPost]:
         """
         Convert raw tweets by IDs payload into normalized post list.
         """
-        tweets = payload.get("tweets")
+        return self._to_posts_from_raw_tweets(payload.get("tweets"))
 
-        if not isinstance(tweets, list):
-            raise ProviderResponseError("Provider response has invalid tweets data")
+    def to_replies(self, payload: dict[str, Any]) -> list[XPost]:
+        """
+        Convert raw tweet replies payload into normalized post list.
+        """
+        return self._to_posts_from_raw_tweets(payload.get("tweets"))
 
-        posts: list[XPost] = []
+    def _to_posts_from_raw_tweets(self, tweets: list[Any]) -> list[XPost]:
+        """
+        Convert a list of raw tweet dicts into normalized XPost list.
+        """
+        try:
+            return [self._to_post_from_tweet(t) for t in tweets]
 
-        for tweet in tweets:
-            if not isinstance(tweet, dict):
-                raise ProviderResponseError("Provider response has invalid tweet item")
-
-            posts.append(self._to_post_from_tweet(tweet))
-
-        return posts
+        except ValidationError as exc:
+            raise ProviderResponseError(
+                "Provider response has invalid tweet item"
+            ) from exc
 
     def _extract_user(self, payload: dict[str, Any]) -> dict[str, Any]:
         user = payload.get("data") or payload.get("user") or payload
@@ -137,5 +133,6 @@ class TwitterAPIIOAdapter:
             replies=raw.reply_count,
             account_name=raw.author.name,
             account_url=raw.author.url,
+            is_reply=raw.is_reply,
             created_at=raw.created_at,
         )
