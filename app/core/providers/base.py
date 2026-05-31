@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from app.schemas import (
     XAccountInfoResult,
     XAccountsSearchResult,
+    XPostSearchSorting,
     XPostsResult,
 )
 from datetime import datetime
@@ -44,6 +45,19 @@ class XProvider(ABC):
     async def get_posts(self, urls_or_ids: str) -> XPostsResult:
         """
         Get normalized posts by URLs or IDs.
+        """
+
+    @abstractmethod
+    async def search_posts(
+        self,
+        query: str,
+        limit: int | None,
+        since: datetime | None,
+        until: datetime | None,
+        sorting: XPostSearchSorting,
+    ) -> XPostsResult:
+        """
+        Search for normalized X posts.
         """
 
     @abstractmethod
