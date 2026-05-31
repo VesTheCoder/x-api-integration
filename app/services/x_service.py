@@ -1,5 +1,10 @@
 from app.core.providers.base import XProvider
-from app.schemas import XAccountInfoResult, XAccountsSearchResult, XPostsResult
+from app.schemas import (
+    XAccountInfoResult,
+    XAccountsSearchResult,
+    XPostSearchSorting,
+    XPostsResult,
+)
 from datetime import datetime
 
 
@@ -66,3 +71,17 @@ class XService:
         Get replies for a specific tweet.
         """
         return await provider.get_replies(url_or_id, limit, since, until)
+
+    async def search_posts(
+        self,
+        provider: XProvider,
+        query: str,
+        limit: int | None,
+        since: datetime | None,
+        until: datetime | None,
+        sorting: XPostSearchSorting,
+    ) -> XPostsResult:
+        """
+        Search X posts by query.
+        """
+        return await provider.search_posts(query, limit, since, until, sorting)
