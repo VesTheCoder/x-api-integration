@@ -16,3 +16,8 @@ class XPaginatedQuery(XQuery):
     """
 
     limit: int | None = Field(default=None, ge=20)
+
+
+class XPostSearchSorting(StrEnum):
+    latest = "Latest"
+    top = "Top"
