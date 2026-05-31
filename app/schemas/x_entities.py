@@ -10,12 +10,10 @@ class ProviderRunMetadata(BaseModel):
     latency_ms: int
     error_code: int | None = None
     error_message: str | None = None
-    fetched_at: datetime
-
-
-class XSearchMetadata(ProviderRunMetadata):
-    requested_limit: int | None
+    estimated_cost_usd: float
+    requested_limit: int | None = None
     returned_count: int
+    fetched_at: datetime
 
 
 class XAccountInfo(BaseModel):
@@ -58,9 +56,9 @@ class XAccountInfoResult(BaseModel):
 
 class XAccountsSearchResult(BaseModel):
     data: list[XAccountInfo]
-    metadata: XSearchMetadata
+    metadata: ProviderRunMetadata
 
 
 class XPostsResult(BaseModel):
     data: list[XPost]
-    metadata: XSearchMetadata
+    metadata: ProviderRunMetadata

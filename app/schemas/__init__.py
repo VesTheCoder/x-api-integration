@@ -12,7 +12,6 @@ from app.schemas.x_entities import (
     XAccountsSearchResult,
     XPost,
     XPostsResult,
-    XSearchMetadata,
 )
 from app.schemas.x_queries import (
     GetAccountInfoQuery,
@@ -30,7 +29,6 @@ __all__ = [
     "XAccountsSearchResult",
     "XPost",
     "XPostsResult",
-    "XSearchMetadata",
     "ProviderRunMetadata",
     "GetAccountInfoQuery",
     "GetAccountPostsQuery",
