@@ -11,6 +11,7 @@ from app.schemas import (
     ProviderRunMetadata,
     XAccountInfoResult,
     XAccountsSearchResult,
+    XPostSearchSorting,
     XPostsResult,
     XProviderKey,
     XSearchMetadata,
@@ -150,6 +151,59 @@ class TwitterAPIIOProvider(XProvider):
             ),
         )
 
+    async def search_posts(
+        self,
+        query: str,
+        limit: int | None,
+        since: datetime | None,
+        until: datetime | None,
+        sorting: XPostSearchSorting,
+    ) -> XPostsResult:
+        """
+        Search normalized posts through TwitterAPI.io advanced search.
+        """
+        started_at = perf_counter()
+        posts = []
+        error_code = None
+        error_message = None
+        provider_query = self._build_search_posts_query(query, since, until)
+
+        async def fetch_page(cursor: str | None) -> dict[str, Any]:
+            return await self.client.search_tweets(
+                query=provider_query,
+                query_type=sorting.value,
+                cursor=cursor,
+            )
+
+        try:
+            async for payload in cursor_pagination(fetch_page):
+                posts.extend(self.adapter.to_search_posts(payload))
+                if limit is not None and len(posts) >= limit:
+                    break
+
+        except ProviderRateLimitError:
+            if not posts:
+                raise
+            error_code = ErrorCode.RATE_LIMIT
+            error_message = "Provider rate limit reached"
+
+        latency_ms = int((perf_counter() - started_at) * 1000)
+        data = posts[:limit] if limit is not None else posts
+
+        return XPostsResult(
+            data=data,
+            metadata=XSearchMetadata(
+                provider_key=XProviderKey.twitterapi_io,
+                input_query=provider_query,
+                latency_ms=latency_ms,
+                fetched_at=datetime.now(UTC),
+                requested_limit=limit,
+                returned_count=len(data),
+                error_code=error_code,
+                error_message=error_message,
+            ),
+        )
+
     async def get_replies(
         self,
         url_or_id: str,
@@ -227,3 +281,16 @@ class TwitterAPIIOProvider(XProvider):
                 returned_count=len(posts),
             ),
         )
+
+    def _build_search_posts_query(
+        self,
+        query: str,
+        since: datetime | None,
+        until: datetime | None,
+    ) -> str:
+        parts = [query]
+        if since is not None:
+            parts.append(f"since_time:{int(since.timestamp())}")
+        if until is not None:
+            parts.append(f"until_time:{int(until.timestamp())}")
+        return " ".join(parts)
