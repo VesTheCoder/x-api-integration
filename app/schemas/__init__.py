@@ -1,4 +1,3 @@
-from app.schemas.error import ErrorDTO
 from app.schemas.x_base import (
     XPaginatedQuery,
     XPostSearchSorting,
@@ -23,7 +22,6 @@ from app.schemas.x_queries import (
 )
 
 __all__ = [
-    "ErrorDTO",
     "XAccountInfo",
     "XAccountInfoResult",
     "XAccountsSearchResult",

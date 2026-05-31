@@ -298,7 +298,7 @@ class TwitterAPIIOProvider(XProvider):
         returned_count: int,
         fetched_at: datetime,
         requested_limit: int | None = None,
-        error_code: int | None = None,
+        error_code: ErrorCode | None = None,
         error_message: str | None = None,
     ) -> ProviderRunMetadata:
         """

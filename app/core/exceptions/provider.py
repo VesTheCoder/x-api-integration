@@ -2,7 +2,7 @@ from app.core.exceptions.base import AppError
 from enum import Enum
 
 
-class ErrorCode(str, Enum):
+class ErrorCode(int, Enum):
     """
     Standardized error codes for provider operations.
     """

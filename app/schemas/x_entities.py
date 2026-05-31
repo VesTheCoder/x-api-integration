@@ -1,3 +1,4 @@
+from app.core.exceptions import ErrorCode
 from app.schemas.x_base import XProviderKey
 from datetime import datetime
 from pydantic import BaseModel
@@ -8,7 +9,7 @@ class ProviderRunMetadata(BaseModel):
     provider_run_id: str | None = None
     input_query: str
     latency_ms: int
-    error_code: int | None = None
+    error_code: ErrorCode | None = None
     error_message: str | None = None
     estimated_cost_usd: float
     requested_limit: int | None = None
