@@ -3,6 +3,7 @@ from app.core.providers.base import XProvider
 from app.core.providers.twitterapi_io.adapter import TwitterAPIIOAdapter
 from app.core.providers.twitterapi_io.client import TwitterAPIIOClient
 from app.core.utils import (
+    TwitterAPICostCalculator,
     cursor_pagination,
     get_post_ids_from_urls,
     has_exceeded_max_runtime,
@@ -14,7 +15,6 @@ from app.schemas import (
     XPostSearchSorting,
     XPostsResult,
     XProviderKey,
-    XSearchMetadata,
 )
 from datetime import UTC, datetime
 from time import perf_counter
@@ -45,10 +45,11 @@ class TwitterAPIIOProvider(XProvider):
 
         return XAccountInfoResult(
             data=account,
-            metadata=ProviderRunMetadata(
-                provider_key=XProviderKey.twitterapi_io,
+            metadata=self._make_metadata(
                 input_query=username,
                 latency_ms=latency_ms,
+                returned_count=1 if account else 0,
+                requested_limit=None,
                 fetched_at=datetime.now(UTC),
             ),
         )
@@ -89,13 +90,12 @@ class TwitterAPIIOProvider(XProvider):
 
         return XAccountsSearchResult(
             data=data,
-            metadata=XSearchMetadata(
-                provider_key=XProviderKey.twitterapi_io,
+            metadata=self._make_metadata(
                 input_query=query,
                 latency_ms=latency_ms,
+                returned_count=len(data),
                 fetched_at=datetime.now(UTC),
                 requested_limit=limit,
-                returned_count=len(data),
                 error_code=error_code,
                 error_message=error_message,
             ),
@@ -139,13 +139,12 @@ class TwitterAPIIOProvider(XProvider):
 
         return XPostsResult(
             data=data,
-            metadata=XSearchMetadata(
-                provider_key=XProviderKey.twitterapi_io,
+            metadata=self._make_metadata(
                 input_query=username_or_userid,
                 latency_ms=latency_ms,
+                returned_count=len(data),
                 fetched_at=datetime.now(UTC),
                 requested_limit=limit,
-                returned_count=len(data),
                 error_code=error_code,
                 error_message=error_message,
             ),
@@ -192,13 +191,12 @@ class TwitterAPIIOProvider(XProvider):
 
         return XPostsResult(
             data=data,
-            metadata=XSearchMetadata(
-                provider_key=XProviderKey.twitterapi_io,
+            metadata=self._make_metadata(
                 input_query=provider_query,
                 latency_ms=latency_ms,
+                returned_count=len(data),
                 fetched_at=datetime.now(UTC),
                 requested_limit=limit,
-                returned_count=len(data),
                 error_code=error_code,
                 error_message=error_message,
             ),
@@ -248,13 +246,12 @@ class TwitterAPIIOProvider(XProvider):
 
         return XPostsResult(
             data=data,
-            metadata=XSearchMetadata(
-                provider_key=XProviderKey.twitterapi_io,
+            metadata=self._make_metadata(
                 input_query=url_or_id,
                 latency_ms=latency_ms,
+                returned_count=len(data),
                 fetched_at=datetime.now(UTC),
                 requested_limit=limit,
-                returned_count=len(data),
                 error_code=error_code,
                 error_message=error_message,
             ),
@@ -272,13 +269,12 @@ class TwitterAPIIOProvider(XProvider):
 
         return XPostsResult(
             data=posts,
-            metadata=XSearchMetadata(
-                provider_key=XProviderKey.twitterapi_io,
+            metadata=self._make_metadata(
                 input_query=urls_or_ids,
                 latency_ms=latency_ms,
+                returned_count=len(posts),
                 fetched_at=datetime.now(UTC),
                 requested_limit=None,
-                returned_count=len(posts),
             ),
         )
 
@@ -294,3 +290,29 @@ class TwitterAPIIOProvider(XProvider):
         if until is not None:
             parts.append(f"until_time:{int(until.timestamp())}")
         return " ".join(parts)
+
+    def _make_metadata(
+        self,
+        input_query: str,
+        latency_ms: int,
+        returned_count: int,
+        fetched_at: datetime,
+        requested_limit: int | None = None,
+        error_code: int | None = None,
+        error_message: str | None = None,
+    ) -> ProviderRunMetadata:
+        """
+        Build metadata with estimated cost for any provider response.
+        """
+        estimated_cost_usd = TwitterAPICostCalculator.calculate(returned_count)
+        return ProviderRunMetadata(
+            provider_key=XProviderKey.twitterapi_io,
+            input_query=input_query,
+            latency_ms=latency_ms,
+            estimated_cost_usd=estimated_cost_usd,
+            requested_limit=requested_limit,
+            returned_count=returned_count,
+            fetched_at=fetched_at,
+            error_code=error_code,
+            error_message=error_message,
+        )
