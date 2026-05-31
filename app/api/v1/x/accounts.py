@@ -57,7 +57,6 @@ async def get_account_info(
     provider: Annotated[XProvider, Depends(get_provider_from_query)],
 ) -> XAccountInfoResult:
     """
-    Router function.
     Get X account information by username.
     """
     return await service.get_account_info(provider, username)
