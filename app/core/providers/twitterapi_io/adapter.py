@@ -63,6 +63,12 @@ class TwitterAPIIOAdapter:
         """
         return self._to_posts_from_raw_tweets(payload.get("tweets"))
 
+    def to_search_posts(self, payload: dict[str, Any]) -> list[XPost]:
+        """
+        Convert raw tweets search payload into normalized post list.
+        """
+        return self._to_posts_from_raw_tweets(payload.get("tweets"))
+
     def to_replies(self, payload: dict[str, Any]) -> list[XPost]:
         """
         Convert raw tweet replies payload into normalized post list.
