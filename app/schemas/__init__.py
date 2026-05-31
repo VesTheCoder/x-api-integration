@@ -1,6 +1,7 @@
 from app.schemas.error import ErrorDTO
 from app.schemas.x_base import (
     XPaginatedQuery,
+    XPostSearchSorting,
     XProviderKey,
     XQuery,
 )
@@ -19,6 +20,7 @@ from app.schemas.x_queries import (
     GetPostsQuery,
     GetRepliesQuery,
     SearchAccountsQuery,
+    SearchPostsQuery,
 )
 
 __all__ = [
@@ -35,7 +37,9 @@ __all__ = [
     "GetPostsQuery",
     "GetRepliesQuery",
     "SearchAccountsQuery",
+    "SearchPostsQuery",
     "XProviderKey",
+    "XPostSearchSorting",
     "XQuery",
     "XPaginatedQuery",
 ]
