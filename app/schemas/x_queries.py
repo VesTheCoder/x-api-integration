@@ -1,4 +1,4 @@
-from app.schemas.x_base import XPaginatedQuery, XQuery
+from app.schemas.x_base import XPaginatedQuery, XPostSearchSorting, XQuery
 from datetime import datetime
 from pydantic import Field
 
@@ -18,9 +18,14 @@ class GetAccountPostsQuery(XPaginatedQuery):
 
 
 class GetPostsQuery(XQuery):
-    urls_or_ids: str = Field(
-        description="Tweet IDs or URLs (comma-separated). Example: 123456789 or 987654321,https://x.com/username/status/123456789"
-    )
+    urls_or_ids: str
+
+
+class SearchPostsQuery(XPaginatedQuery):
+    query: str
+    since: datetime | None = None
+    until: datetime | None = None
+    sorting: XPostSearchSorting = XPostSearchSorting.latest
 
 
 class GetRepliesQuery(XPaginatedQuery):
