@@ -190,6 +190,7 @@ class TwitterAPIIOProvider(XProvider):
         since: datetime | None,
         until: datetime | None,
         sorting: XPostSearchSorting,
+        include_replies: bool = False,
     ) -> XPostsResult:
         """
         Search normalized posts through TwitterAPI.io advanced search.
@@ -198,7 +199,9 @@ class TwitterAPIIOProvider(XProvider):
         posts = []
         error_code = None
         error_message = None
-        provider_query = self._build_search_posts_query(query, since, until)
+        provider_query = self._build_search_posts_query(
+            query, since, until, include_replies
+        )
 
         async def fetch_page(cursor: str | None) -> dict[str, Any]:
             return await self.client.search_tweets(
@@ -316,12 +319,15 @@ class TwitterAPIIOProvider(XProvider):
         query: str,
         since: datetime | None,
         until: datetime | None,
+        include_replies: bool = False,
     ) -> str:
         parts = [query]
         if since is not None:
             parts.append(f"since_time:{int(since.timestamp())}")
         if until is not None:
             parts.append(f"until_time:{int(until.timestamp())}")
+        if not include_replies:
+            parts.append("-is:reply")
         return " ".join(parts)
 
     def _make_metadata(

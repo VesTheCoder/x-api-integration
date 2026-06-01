@@ -80,8 +80,11 @@ class XService:
         since: datetime | None,
         until: datetime | None,
         sorting: XPostSearchSorting,
+        include_replies: bool = False,
     ) -> XPostsResult:
         """
         Search X posts by query.
         """
-        return await provider.search_posts(query, limit, since, until, sorting)
+        return await provider.search_posts(
+            query, limit, since, until, sorting, include_replies
+        )

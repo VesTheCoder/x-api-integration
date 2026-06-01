@@ -55,6 +55,7 @@ class XProvider(ABC):
         since: datetime | None,
         until: datetime | None,
         sorting: XPostSearchSorting,
+        include_replies: bool = False,
     ) -> XPostsResult:
         """
         Search for normalized X posts.

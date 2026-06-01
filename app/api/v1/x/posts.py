@@ -43,6 +43,7 @@ async def search_posts(
         since=params.since,
         until=params.until,
         sorting=params.sorting,
+        include_replies=params.include_replies,
     )
 
 

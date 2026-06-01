@@ -26,6 +26,7 @@ class SearchPostsQuery(XPaginatedQuery):
     since: datetime | None = None
     until: datetime | None = None
     sorting: XPostSearchSorting = XPostSearchSorting.latest
+    include_replies: bool = False
 
 
 class GetRepliesQuery(XPaginatedQuery):
