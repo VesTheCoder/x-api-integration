@@ -48,6 +48,7 @@ class XPost(BaseModel):
     account_name: str
     account_url: str
     is_reply: bool
+    reply_to: str | None
     created_at: str
 
 

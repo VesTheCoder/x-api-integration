@@ -69,5 +69,6 @@ class TwitterAPIIOTweet(BaseModel):
     quote_count: int = Field(default=0, alias="quoteCount")
     reply_count: int = Field(default=0, alias="replyCount")
     is_reply: bool = Field(default=False, alias="isReply")
+    in_reply_to_id: str | None = Field(default=None, alias="inReplyToId")
     created_at: str = Field(default="", alias="createdAt")
     author: TwitterAPIIOAuthor = Field(default_factory=TwitterAPIIOAuthor)

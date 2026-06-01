@@ -140,5 +140,10 @@ class TwitterAPIIOAdapter:
             account_name=raw.author.name,
             account_url=raw.author.url,
             is_reply=raw.is_reply,
+            reply_to=(
+                f"https://x.com/i/web/status/{raw.in_reply_to_id}"
+                if raw.in_reply_to_id
+                else None
+            ),
             created_at=raw.created_at,
         )
