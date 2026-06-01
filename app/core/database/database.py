@@ -31,3 +31,11 @@ async def close_database() -> None:
     await async_engine.dispose()
     async_engine = None
     async_session_maker = None
+
+
+async def get_db_session() -> AsyncSession:
+    """
+    Yield an async database session.
+    """
+    async with async_session_maker() as session:
+        yield session

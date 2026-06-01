@@ -1,23 +1,30 @@
 import httpx
+from app.core.database.database import get_db_session
 from app.core.http_client import AsyncHTTPClient
 from app.core.providers.base import XProvider
 from app.core.providers.twitterapi_io.adapter import TwitterAPIIOAdapter
 from app.core.providers.twitterapi_io.client import TwitterAPIIOClient
 from app.core.providers.twitterapi_io.provider import TwitterAPIIOProvider
+from app.repository.x_response import XApiResponseRepository
 from app.schemas import XProviderKey, XQuery
 from app.services.x_service import XService
 from app.settings import Settings
 from fastapi import Depends, Request
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
 
 settings = Settings()
 
 
-def get_x_service() -> XService:
+DBSession = Annotated[AsyncSession, Depends(get_db_session)]
+
+
+def get_x_service(db: DBSession) -> XService:
     """
-    Build X data application service.
+    Build X data application service with response logging.
     """
-    return XService()
+    repo = XApiResponseRepository(session=db)
+    return XService(response_repo=repo)
 
 
 def get_provider(request: Request, provider_key: XProviderKey) -> XProvider:
