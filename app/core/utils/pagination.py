@@ -22,7 +22,7 @@ async def cursor_pagination(
             return
 
 
-# temporary guard, will be removed when provider would fix has_next_page return value
+# TODO: remove this guard when provider would fix has_next_page return value
 def _page_item_count(payload: dict[str, Any]) -> int:
     for value in payload.values():
         if isinstance(value, list):
