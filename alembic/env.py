@@ -10,14 +10,15 @@ from sqlalchemy.ext.asyncio import create_async_engine
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from app.core.database.base import Base
-from app.settings import Settings
+from app.models import *  # noqa: F401,F403
+from app.settings import PostgresConfig
 
 config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-settings = Settings()
+pg_config = PostgresConfig()
 target_metadata = Base.metadata
 
 
@@ -25,7 +26,7 @@ def run_migrations_offline() -> None:
     """
     Run migrations in 'offline' mode.
     """
-    url = settings.postgres.database_url
+    url = pg_config.database_url
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -49,7 +50,7 @@ async def run_async_migrations() -> None:
     Create an Engine and associate a connection with the context.
     """
     connectable = create_async_engine(
-        settings.postgres.database_url,
+        pg_config.database_url,
         poolclass=pool.NullPool,
     )
 
