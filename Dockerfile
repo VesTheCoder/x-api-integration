@@ -10,8 +10,12 @@ WORKDIR /x-api-integration
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-install-project
 
-COPY app/ ./
+COPY app/ ./app/
+COPY alembic.ini ./
+COPY alembic/ ./alembic/
+COPY entrypoint.sh ./
+RUN chmod +x ./entrypoint.sh
 
 EXPOSE 8000
 
-CMD ["uv", "run", "python", "main.py"]
+ENTRYPOINT ["./entrypoint.sh"]
