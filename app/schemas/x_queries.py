@@ -3,8 +3,8 @@ from datetime import datetime
 from pydantic import Field
 
 
-class GetAccountInfoQuery(XQuery):
-    pass
+class GetAccountsInfoQuery(XQuery):
+    usernames: str
 
 
 class SearchAccountsQuery(XPaginatedQuery):

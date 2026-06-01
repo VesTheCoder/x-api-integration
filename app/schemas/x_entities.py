@@ -1,4 +1,5 @@
 from app.core.exceptions import ErrorCode
+from app.schemas.error import ErrorDTO
 from app.schemas.x_base import XProviderKey
 from datetime import datetime
 from pydantic import BaseModel
@@ -52,6 +53,11 @@ class XPost(BaseModel):
 
 class XAccountInfoResult(BaseModel):
     data: XAccountInfo
+    metadata: ProviderRunMetadata
+
+
+class XAccountsInfoResult(BaseModel):
+    data: list[XAccountInfo | ErrorDTO]
     metadata: ProviderRunMetadata
 
 

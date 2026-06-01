@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from app.schemas import (
-    XAccountInfoResult,
+    XAccountsInfoResult,
     XAccountsSearchResult,
     XPostSearchSorting,
     XPostsResult,
@@ -14,9 +14,9 @@ class XProvider(ABC):
     """
 
     @abstractmethod
-    async def get_account_info(self, username: str) -> XAccountInfoResult:
+    async def get_accounts_info(self, urls_or_usernames: str) -> XAccountsInfoResult:
         """
-        Get normalized X account information.
+        Get normalized X account information for multiple usernames.
         """
 
     @abstractmethod

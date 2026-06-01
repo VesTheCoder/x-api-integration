@@ -1,10 +1,10 @@
 from app.core.dependencies.fastapi import get_provider_from_query, get_x_service
 from app.core.providers.base import XProvider
 from app.schemas import (
-    GetAccountInfoQuery,
     GetAccountPostsQuery,
+    GetAccountsInfoQuery,
     SearchAccountsQuery,
-    XAccountInfoResult,
+    XAccountsInfoResult,
     XAccountsSearchResult,
     XPostsResult,
 )
@@ -13,6 +13,20 @@ from fastapi import APIRouter, Depends
 from typing import Annotated
 
 router = APIRouter(prefix="/accounts", tags=["X accounts"])
+
+
+@router.get("", response_model=XAccountsInfoResult)
+async def get_accounts_info(
+    params: Annotated[GetAccountsInfoQuery, Depends()],
+    service: Annotated[XService, Depends(get_x_service)],
+    provider: Annotated[XProvider, Depends(get_provider_from_query)],
+) -> XAccountsInfoResult:
+    """
+    Get X account information for multiple usernames.
+    Comma-separated values and profile URLs are supported.
+    (e.g. elonmusk, or https://x.com/elonmusk)
+    """
+    return await service.get_accounts_info(provider, params.usernames)
 
 
 @router.get("/search", response_model=XAccountsSearchResult)
@@ -47,16 +61,3 @@ async def get_account_posts(
         limit=params.limit,
         include_replies=params.include_replies,
     )
-
-
-@router.get("/{username}", response_model=XAccountInfoResult)
-async def get_account_info(
-    username: str,
-    params: Annotated[GetAccountInfoQuery, Depends()],
-    service: Annotated[XService, Depends(get_x_service)],
-    provider: Annotated[XProvider, Depends(get_provider_from_query)],
-) -> XAccountInfoResult:
-    """
-    Get X account information by username.
-    """
-    return await service.get_account_info(provider, username)

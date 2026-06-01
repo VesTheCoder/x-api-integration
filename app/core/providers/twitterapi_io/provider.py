@@ -1,4 +1,9 @@
-from app.core.exceptions import ErrorCode, ProviderRateLimitError
+from app.core.exceptions import (
+    ErrorCode,
+    ProviderRateLimitError,
+    ProviderResponseError,
+    XAccountNotFoundError,
+)
 from app.core.providers.base import XProvider
 from app.core.providers.twitterapi_io.adapter import TwitterAPIIOAdapter
 from app.core.providers.twitterapi_io.client import TwitterAPIIOClient
@@ -6,11 +11,14 @@ from app.core.utils import (
     TwitterAPICostCalculator,
     cursor_pagination,
     get_post_ids_from_urls,
+    get_usernames_from_urls,
     has_exceeded_max_runtime,
 )
 from app.schemas import (
+    ErrorDTO,
     ProviderRunMetadata,
-    XAccountInfoResult,
+    XAccountInfo,
+    XAccountsInfoResult,
     XAccountsSearchResult,
     XPostSearchSorting,
     XPostsResult,
@@ -34,23 +42,48 @@ class TwitterAPIIOProvider(XProvider):
         self.client = client
         self.adapter = adapter
 
-    async def get_account_info(self, username: str) -> XAccountInfoResult:
+    async def get_accounts_info(self, urls_or_usernames: str) -> XAccountsInfoResult:
         """
-        Get normalized account information by username.
+        Get normalized account information for multiple usernames.
+        Comma-separated usernames and profile URLs are supported.
         """
         started_at = perf_counter()
-        payload = await self.client.get_user_info(username)
-        account = self.adapter.to_account_info(payload)
-        latency_ms = int((perf_counter() - started_at) * 1000)
+        normalized = get_usernames_from_urls(urls_or_usernames)
+        usernames = [u for u in normalized.split(",") if u]
+        results: list = []
+        error_code = None
+        error_message = None
 
-        return XAccountInfoResult(
-            data=account,
+        for username in usernames:
+            try:
+                payload = await self.client.get_user_info(username)
+                account = self.adapter.to_account_info(payload)
+                results.append(account)
+            except ProviderRateLimitError as exc:
+                if not results:
+                    raise
+                error_code = ErrorCode.RATE_LIMIT
+                error_message = exc.message
+                break
+            except (ProviderResponseError, XAccountNotFoundError) as exc:
+                if error_message is None:
+                    error_code = ErrorCode.INVALID_RESPONSE
+                    error_message = exc.message
+                results.append(ErrorDTO(query=username, exc=exc.message))
+
+        latency_ms = int((perf_counter() - started_at) * 1000)
+        returned_count = sum(1 for r in results if isinstance(r, XAccountInfo))
+
+        return XAccountsInfoResult(
+            data=results,
             metadata=self._make_metadata(
-                input_query=username,
+                input_query=urls_or_usernames,
                 latency_ms=latency_ms,
-                returned_count=1 if account else 0,
-                requested_limit=None,
+                returned_count=returned_count,
                 fetched_at=datetime.now(UTC),
+                requested_limit=len(usernames),
+                error_code=error_code,
+                error_message=error_message,
             ),
         )
 
@@ -79,11 +112,11 @@ class TwitterAPIIOProvider(XProvider):
                 if has_exceeded_max_runtime(started_at, max_runtime_sec):
                     break
 
-        except ProviderRateLimitError:
+        except ProviderRateLimitError as exc:
             if not accounts:
                 raise
             error_code = ErrorCode.RATE_LIMIT
-            error_message = "Provider rate limit reached"
+            error_message = exc.message
 
         latency_ms = int((perf_counter() - started_at) * 1000)
         data = accounts[:limit] if limit is not None else accounts
@@ -128,11 +161,11 @@ class TwitterAPIIOProvider(XProvider):
                 if limit is not None and len(posts) >= limit:
                     break
 
-        except ProviderRateLimitError:
+        except ProviderRateLimitError as exc:
             if not posts:
                 raise
             error_code = ErrorCode.RATE_LIMIT
-            error_message = "Provider rate limit reached"
+            error_message = exc.message
 
         latency_ms = int((perf_counter() - started_at) * 1000)
         data = posts[:limit] if limit is not None else posts
@@ -180,11 +213,11 @@ class TwitterAPIIOProvider(XProvider):
                 if limit is not None and len(posts) >= limit:
                     break
 
-        except ProviderRateLimitError:
+        except ProviderRateLimitError as exc:
             if not posts:
                 raise
             error_code = ErrorCode.RATE_LIMIT
-            error_message = "Provider rate limit reached"
+            error_message = exc.message
 
         latency_ms = int((perf_counter() - started_at) * 1000)
         data = posts[:limit] if limit is not None else posts
@@ -235,11 +268,11 @@ class TwitterAPIIOProvider(XProvider):
                 if limit is not None and len(replies) >= limit:
                     break
 
-        except ProviderRateLimitError:
+        except ProviderRateLimitError as exc:
             if not replies:
                 raise
             error_code = ErrorCode.RATE_LIMIT
-            error_message = "Provider rate limit reached"
+            error_message = exc.message
 
         latency_ms = int((perf_counter() - started_at) * 1000)
         data = replies[:limit] if limit is not None else replies

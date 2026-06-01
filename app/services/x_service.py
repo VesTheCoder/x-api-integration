@@ -1,6 +1,6 @@
 from app.core.providers.base import XProvider
 from app.schemas import (
-    XAccountInfoResult,
+    XAccountsInfoResult,
     XAccountsSearchResult,
     XPostSearchSorting,
     XPostsResult,
@@ -13,15 +13,15 @@ class XService:
     Application service for X data operations.
     """
 
-    async def get_account_info(
+    async def get_accounts_info(
         self,
         provider: XProvider,
-        username: str,
-    ) -> XAccountInfoResult:
+        urls_or_usernames: str,
+    ) -> XAccountsInfoResult:
         """
-        Get X account information by username.
+        Get X account information for multiple usernames.
         """
-        return await provider.get_account_info(username)
+        return await provider.get_accounts_info(urls_or_usernames)
 
     async def search_accounts(
         self,
