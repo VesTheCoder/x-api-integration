@@ -1,3 +1,4 @@
+import asyncio
 from app.core.exceptions import (
     ErrorCode,
     ProviderRateLimitError,
@@ -42,29 +43,41 @@ class TwitterAPIIOProvider(XProvider):
 
     async def get_accounts_info(self, usernames: list[str]) -> XAccountsInfoResult:
         """
-        Get normalized account information for multiple usernames.
+        Get normalized account information for multiple usernames concurrently.
         """
         started_at = perf_counter()
+
+        async def _fetch_one(username: str) -> XAccountInfo:
+            payload = await self.client.get_user_info(username)
+            return self.adapter.to_account_info(payload)
+
+        tasks = [_fetch_one(u) for u in usernames]
+        outcomes = await asyncio.gather(*tasks, return_exceptions=True)
+
         results: list = []
         error_code = None
         error_message = None
 
-        for username in usernames:
-            try:
-                payload = await self.client.get_user_info(username)
-                account = self.adapter.to_account_info(payload)
-                results.append(account)
-            except ProviderRateLimitError as exc:
-                if not results:
-                    raise
-                error_code = ErrorCode.RATE_LIMIT
-                error_message = exc.message
-                break
-            except (ProviderResponseError, XAccountNotFoundError) as exc:
+        for username, outcome in zip(usernames, outcomes, strict=False):
+            if isinstance(outcome, XAccountInfo):
+                results.append(outcome)
+            elif isinstance(outcome, ProviderRateLimitError):
+                if error_message is None:
+                    error_code = ErrorCode.RATE_LIMIT
+                    error_message = outcome.message
+                results.append(ErrorDTO(query=username, exc=outcome.message))
+            elif isinstance(outcome, (ProviderResponseError, XAccountNotFoundError)):
                 if error_message is None:
                     error_code = ErrorCode.INVALID_RESPONSE
-                    error_message = exc.message
-                results.append(ErrorDTO(query=username, exc=exc.message))
+                    error_message = outcome.message
+                results.append(ErrorDTO(query=username, exc=outcome.message))
+            else:
+                raise outcome
+
+        if error_code == ErrorCode.RATE_LIMIT and not any(
+            isinstance(r, XAccountInfo) for r in results
+        ):
+            raise ProviderRateLimitError(error_message)
 
         latency_ms = int((perf_counter() - started_at) * 1000)
         returned_count = sum(1 for r in results if isinstance(r, XAccountInfo))

@@ -36,6 +36,8 @@ class XProviders(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="PROVIDER_X_")
     twitterapi_io_api_key: str = Field(min_length=1)
     twitterapi_io_base_url: str = Field(min_length=1)
+    twitterapi_io_rate_limit: int = Field(ge=1)
+    twitterapi_io_rate_limit_period_sec: int = Field(ge=1)
 
 
 class CORSConfig(BaseSettings):

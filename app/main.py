@@ -1,9 +1,11 @@
 import httpx
 import uvicorn
+from aiolimiter import AsyncLimiter
 from app.api.exception_handlers import provider_exception_handler
 from app.api.v1.x.base import router as x_router
 from app.core.database.database import close_database, init_database
 from app.core.exceptions import ProviderError
+from app.schemas import XProviderKey
 from app.settings import Settings
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -15,10 +17,16 @@ settings = Settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Manage database and HTTP client lifecycle.
+    Manage database, HTTP client, and per-provider rate limiter lifecycle.
     """
     await init_database(settings.postgres.database_url)
     app.state.http_client = httpx.AsyncClient(timeout=None)
+    app.state.provider_limiters = {
+        XProviderKey.twitterapi_io: AsyncLimiter(
+            settings.providers.twitterapi_io_rate_limit,
+            settings.providers.twitterapi_io_rate_limit_period_sec,
+        ),
+    }
     yield
     await close_database()
     await app.state.http_client.aclose()

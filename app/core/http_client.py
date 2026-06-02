@@ -1,5 +1,6 @@
 import asyncio
 import httpx
+from aiolimiter import AsyncLimiter
 from app.core.exceptions import ProviderUnavailableError
 from typing import Any
 
@@ -12,8 +13,13 @@ class AsyncHTTPClient:
     Reusable asynchronous HTTP client wrapper.
     """
 
-    def __init__(self, client: httpx.AsyncClient) -> None:
+    def __init__(
+        self,
+        client: httpx.AsyncClient,
+        rate_limiter: AsyncLimiter,
+    ) -> None:
         self.client = client
+        self.rate_limiter = rate_limiter
 
     async def get(
         self,
@@ -22,11 +28,14 @@ class AsyncHTTPClient:
         params: dict[str, Any] | None = None,
     ) -> httpx.Response:
         """
-        Execute an asynchronous GET request with retry on 429.
+        Execute a rate-limited asynchronous GET request with retry on 429.
         """
         for attempt in range(MAX_RETRIES):
             try:
-                response = await self.client.get(url, headers=headers, params=params)
+                async with self.rate_limiter:
+                    response = await self.client.get(
+                        url, headers=headers, params=params
+                    )
                 if response.status_code == 429:
                     if attempt < MAX_RETRIES - 1:
                         delay = REQUEST_DELAY_MS / 1000 * (2**attempt)
