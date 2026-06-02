@@ -14,7 +14,7 @@ class XProvider(ABC):
     """
 
     @abstractmethod
-    async def get_accounts_info(self, urls_or_usernames: str) -> XAccountsInfoResult:
+    async def get_accounts_info(self, usernames: list[str]) -> XAccountsInfoResult:
         """
         Get normalized X account information for multiple usernames.
         """
@@ -42,9 +42,9 @@ class XProvider(ABC):
         """
 
     @abstractmethod
-    async def get_posts(self, urls_or_ids: str) -> XPostsResult:
+    async def get_posts(self, tweet_ids: list[str]) -> XPostsResult:
         """
-        Get normalized posts by URLs or IDs.
+        Get normalized posts by tweet IDs.
         """
 
     @abstractmethod

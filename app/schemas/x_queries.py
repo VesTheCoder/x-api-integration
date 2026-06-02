@@ -1,10 +1,20 @@
+from app.core.utils import (
+    normalize_single_tweet_id,
+    normalize_tweet_ids,
+    normalize_usernames,
+)
 from app.schemas.x_base import XPaginatedQuery, XPostSearchSorting, XQuery
 from datetime import datetime
-from pydantic import Field
+from pydantic import Field, field_validator
 
 
 class GetAccountsInfoQuery(XQuery):
-    usernames: str
+    usernames: list[str]
+
+    @field_validator("usernames", mode="before")
+    @classmethod
+    def _normalize(cls, v: list[str]) -> list[str]:
+        return normalize_usernames(v)
 
 
 class SearchAccountsQuery(XPaginatedQuery):
@@ -18,7 +28,12 @@ class GetAccountPostsQuery(XPaginatedQuery):
 
 
 class GetPostsQuery(XQuery):
-    urls_or_ids: str
+    tweet_ids: list[str]
+
+    @field_validator("tweet_ids", mode="before")
+    @classmethod
+    def _normalize(cls, v: list[str]) -> list[str]:
+        return normalize_tweet_ids(v)
 
 
 class SearchPostsQuery(XPaginatedQuery):
@@ -33,3 +48,8 @@ class GetRepliesQuery(XPaginatedQuery):
     url_or_id: str
     since: datetime | None = None
     until: datetime | None = None
+
+    @field_validator("url_or_id", mode="before")
+    @classmethod
+    def _normalize(cls, v: str) -> str:
+        return normalize_single_tweet_id(v)
