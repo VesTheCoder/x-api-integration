@@ -2,7 +2,7 @@ from app.core.dependencies.fastapi import get_provider_from_query, get_x_service
 from app.core.providers.base import XProvider
 from app.schemas import GetPostsQuery, GetRepliesQuery, SearchPostsQuery, XPostsResult
 from app.services.x_service import XService
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from typing import Annotated
 
 router = APIRouter(prefix="/posts", tags=["X posts"])
@@ -10,18 +10,19 @@ router = APIRouter(prefix="/posts", tags=["X posts"])
 
 @router.get("", response_model=XPostsResult)
 async def get_posts(
-    params: Annotated[GetPostsQuery, Depends()],
+    tweet_ids: Annotated[list[str], Query()],
     service: Annotated[XService, Depends(get_x_service)],
     provider: Annotated[XProvider, Depends(get_provider_from_query)],
 ) -> XPostsResult:
     """
     Get X posts by tweet IDs or URLs.
-    Comma-separated values are supported.
-    Example: 123456789 or 987654321,https://x.com/username/status/123456789
+    URLs are accepted and normalized automatically
+    (e.g. 987654321, or https://x.com/username/status/123456789).
     """
+    params = GetPostsQuery(tweet_ids=tweet_ids)
     return await service.get_posts(
         provider=provider,
-        urls_or_ids=params.urls_or_ids,
+        tweet_ids=params.tweet_ids,
     )
 
 

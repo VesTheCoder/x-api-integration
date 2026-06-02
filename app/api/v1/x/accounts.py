@@ -9,7 +9,7 @@ from app.schemas import (
     XPostsResult,
 )
 from app.services.x_service import XService
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from typing import Annotated
 
 router = APIRouter(prefix="/accounts", tags=["X accounts"])
@@ -17,15 +17,16 @@ router = APIRouter(prefix="/accounts", tags=["X accounts"])
 
 @router.get("", response_model=XAccountsInfoResult)
 async def get_accounts_info(
-    params: Annotated[GetAccountsInfoQuery, Depends()],
+    usernames: Annotated[list[str], Query()],
     service: Annotated[XService, Depends(get_x_service)],
     provider: Annotated[XProvider, Depends(get_provider_from_query)],
 ) -> XAccountsInfoResult:
     """
     Get X account information for multiple usernames.
-    Comma-separated values and profile URLs are supported.
-    (e.g. elonmusk, or https://x.com/elonmusk)
+    Profile URLs are accepted and normalized automatically
+    (e.g. elonmusk, or https://x.com/elonmusk).
     """
+    params = GetAccountsInfoQuery(usernames=usernames)
     return await service.get_accounts_info(provider, params.usernames)
 
 

@@ -23,12 +23,12 @@ class XService:
     async def get_accounts_info(
         self,
         provider: XProvider,
-        urls_or_usernames: str,
+        usernames: list[str],
     ) -> XAccountsInfoResult:
         """
         Get X account information for multiple usernames.
         """
-        return await provider.get_accounts_info(urls_or_usernames)
+        return await provider.get_accounts_info(usernames)
 
     @log_provider_call
     async def search_accounts(
@@ -62,12 +62,12 @@ class XService:
     async def get_posts(
         self,
         provider: XProvider,
-        urls_or_ids: str,
+        tweet_ids: list[str],
     ) -> XPostsResult:
         """
-        Get posts by URLs or IDs.
+        Get posts by tweet IDs.
         """
-        return await provider.get_posts(urls_or_ids)
+        return await provider.get_posts(tweet_ids)
 
     @log_provider_call
     async def get_replies(

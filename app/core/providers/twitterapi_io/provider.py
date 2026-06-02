@@ -10,8 +10,6 @@ from app.core.providers.twitterapi_io.client import TwitterAPIIOClient
 from app.core.utils import (
     TwitterAPICostCalculator,
     cursor_pagination,
-    get_post_ids_from_urls,
-    get_usernames_from_urls,
     has_exceeded_max_runtime,
 )
 from app.schemas import (
@@ -42,14 +40,11 @@ class TwitterAPIIOProvider(XProvider):
         self.client = client
         self.adapter = adapter
 
-    async def get_accounts_info(self, urls_or_usernames: str) -> XAccountsInfoResult:
+    async def get_accounts_info(self, usernames: list[str]) -> XAccountsInfoResult:
         """
         Get normalized account information for multiple usernames.
-        Comma-separated usernames and profile URLs are supported.
         """
         started_at = perf_counter()
-        normalized = get_usernames_from_urls(urls_or_usernames)
-        usernames = [u for u in normalized.split(",") if u]
         results: list = []
         error_code = None
         error_message = None
@@ -77,7 +72,7 @@ class TwitterAPIIOProvider(XProvider):
         return XAccountsInfoResult(
             data=results,
             metadata=self._make_metadata(
-                input_query=urls_or_usernames,
+                input_query=",".join(usernames),
                 latency_ms=latency_ms,
                 returned_count=returned_count,
                 fetched_at=datetime.now(UTC),
@@ -249,7 +244,6 @@ class TwitterAPIIOProvider(XProvider):
         Get normalized replies for a specific tweet via adapter.
         """
         started_at = perf_counter()
-        tweet_id = get_post_ids_from_urls(url_or_id)
         replies = []
         error_code = None
         error_message = None
@@ -259,7 +253,7 @@ class TwitterAPIIOProvider(XProvider):
 
         async def fetch_page(cursor: str | None) -> dict[str, Any]:
             return await self.client.get_tweet_replies(
-                tweet_id=tweet_id,
+                tweet_id=url_or_id,
                 since=since_unix,
                 until=until_unix,
                 cursor=cursor,
@@ -293,20 +287,19 @@ class TwitterAPIIOProvider(XProvider):
             ),
         )
 
-    async def get_posts(self, urls_or_ids: str) -> XPostsResult:
+    async def get_posts(self, tweet_ids: list[str]) -> XPostsResult:
         """
-        Get normalized posts by URLs or IDs.
+        Get normalized posts by tweet IDs.
         """
         started_at = perf_counter()
-        normalized_ids = get_post_ids_from_urls(urls_or_ids)
-        payload = await self.client.get_tweets_by_ids(normalized_ids)
+        payload = await self.client.get_tweets_by_ids(",".join(tweet_ids))
         posts = self.adapter.to_posts(payload)
         latency_ms = int((perf_counter() - started_at) * 1000)
 
         return XPostsResult(
             data=posts,
             metadata=self._make_metadata(
-                input_query=urls_or_ids,
+                input_query=",".join(tweet_ids),
                 latency_ms=latency_ms,
                 returned_count=len(posts),
                 fetched_at=datetime.now(UTC),
