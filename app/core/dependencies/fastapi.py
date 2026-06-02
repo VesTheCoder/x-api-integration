@@ -1,4 +1,5 @@
 import httpx
+from aiolimiter import AsyncLimiter
 from app.core.database.database import get_db_session
 from app.core.http_client import AsyncHTTPClient
 from app.core.providers.base import XProvider
@@ -32,8 +33,11 @@ def get_provider(request: Request, provider_key: XProviderKey) -> XProvider:
     Get provider by key.
     """
     client = request.app.state.http_client
+    limiters: dict[XProviderKey, AsyncLimiter] = request.app.state.provider_limiters
     providers = {
-        XProviderKey.twitterapi_io: get_twitterapi_io_provider(client),
+        XProviderKey.twitterapi_io: get_twitterapi_io_provider(
+            client, limiters[provider_key]
+        ),
     }
     return providers[provider_key]
 
@@ -48,7 +52,10 @@ def get_provider_from_query(
     return get_provider(request, params.provider_key)
 
 
-def get_twitterapi_io_provider(client: httpx.AsyncClient) -> TwitterAPIIOProvider:
+def get_twitterapi_io_provider(
+    client: httpx.AsyncClient,
+    rate_limiter: AsyncLimiter,
+) -> TwitterAPIIOProvider:
     """
     Build TwitterAPI.io provider.
     """
@@ -56,7 +63,7 @@ def get_twitterapi_io_provider(client: httpx.AsyncClient) -> TwitterAPIIOProvide
         client=TwitterAPIIOClient(
             base_url=settings.providers.twitterapi_io_base_url,
             api_key=settings.providers.twitterapi_io_api_key,
-            http_client=AsyncHTTPClient(client=client),
+            http_client=AsyncHTTPClient(client=client, rate_limiter=rate_limiter),
         ),
         adapter=TwitterAPIIOAdapter(),
     )
