@@ -12,11 +12,12 @@
 # x-api-integration
 
 <p align="center">
-  <b>A provider-agnostic FastAPI gateway for X/Twitter data.</b>
+  <b>A plug-in async gateway for X/Twitter data.</b>
   <br>
-  Swap data providers without changing a single line of client code.
+  Project is ready to operate as a scalable micro-service, where you can add different Twitter(X) data providers according to existing structure. In real use case, allows to query different data providers to achieve API reliability and decrease costs.
+  Add providers without changing a single line of business logic.
   <br>
-  Rate limits, audit trails, and batch concurrency are built in.
+  One API contract. Normalized DTOs. Per-provider rate limits. Full audit trail.
 </p>
 
 <br>
@@ -24,7 +25,10 @@
 ---
 
 ```bash
-$ curl "http://localhost:8000/accounts?usernames=elonmusk" | jq .
+$ curl "http://localhost:8000/accounts?usernames=elonmusk&provider_key=twitterapi_io"
+```
+
+```json
 {
   "data": [
     {
@@ -39,6 +43,7 @@ $ curl "http://localhost:8000/accounts?usernames=elonmusk" | jq .
     "provider_key": "twitterapi_io",
     "latency_ms": 412,
     "returned_count": 1,
+    "estimated_cost_usd": 0.00015,
     "fetched_at": "2026-06-18T12:34:56Z"
   }
 }
@@ -50,25 +55,33 @@ docker compose up
 
 <br>
 
-## Why not call the provider directly?
+## Why a gateway instead of calling providers directly?
 
-| Pain point | Raw provider SDK | x-api-integration |
+Every X data provider has its own endpoints, request formats, and response shapes. One returns `followers`, another `public_metrics.followers_count`. One uses `userId`, another `userName`.
+
+| Problem | Raw HTTP to each provider API | x-api-integration |
 |---|---|---|
-| Provider swap | Refactor every call site | Change one env variable |
-| Rate limit hit | Manual retry logic | Per-provider limiter + auto-retry |
-| Response audit | None | Every call persisted in PostgreSQL |
-| Batch lookups | Sequential loops | Concurrent `asyncio.gather` |
-| Cost tracking | Spreadsheets | Estimated USD per request in metadata |
+| Switch provider | New base URL, new auth, new parsing logic | Change one query param (`?provider_key=`) |
+| Add a new source | Learn their docs, build a new client, connect everything again | Implement within 1 interface |
+| Data model drift | `user.followers` vs `public_metrics.followers_count` vs `stats.followerCount` | One `XAccountInfo` schema for every source |
+| Response normalization | Manual field mapping per provider | Adapter pattern ready for handling |
+| Rate limit burst | Each provider needs its own retry & backoff logic | Per-provider `aiolimiter` + auto-retry |
+| Response audit | None | Every provider call persisted in PostgreSQL |
+| Batch lookups | Sequential HTTP calls | Concurrent `asyncio.gather` |
+| Cost visibility | Check each provider dashboard separately | `estimated_cost_usd` in every response |
+
+**In short:** you talk to one API. The gateway talks to many.
 
 <br>
 
 ## Look once, use immediately
 
-✅ Pass a full URL or raw ID — URL normalization is automatic  
-✅ Change `provider_key` query param to switch backends on the fly  
-✅ Every response includes `latency_ms` and `estimated_cost_usd`  
-✅ Partial results are returned even when rate limits kick in  
-✅ `docker compose up` runs the full stack in 60 seconds  
+✅ Pass `?provider_key=` to route the same request to different APIs or add routing logic within this micro-service
+✅ Add a provider by following existing pattern from abstract class  
+✅ All providers return identical `XAccountInfo` / `XPost` schemas  
+✅ Every response carries `latency_ms`, `provider_run_id`, and `estimated_cost_usd`  
+✅ Partial results survive rate-limit hits — no all-or-nothing failures  
+✅ `docker compose up` is persistent for any OS to ease the developement  
 
 <br>
 
@@ -79,13 +92,13 @@ docker compose up
 git clone https://github.com/VesTheCoder/x-api-integration.git
 cd x-api-integration
 cp .env.sample .env
-# Edit .env and set PROVIDER_X_TWITTERAPI_IO_API_KEY
+# Edit .env and set you PROVIDER_X_TWITTERAPI_IO_API_KEY
 
 # 2. Launch
 docker compose up
 
 # 3. Query
-curl "http://localhost:8000/accounts?usernames=elonmusk"
+curl "http://localhost:8000/accounts?usernames=elonmusk&provider_key=twitterapi_io"
 ```
 
 <br>
@@ -93,28 +106,58 @@ curl "http://localhost:8000/accounts?usernames=elonmusk"
 ## Architecture at a glance
 
 ```
-Client ──→ FastAPI ──→ XService ──→ XProvider (SPI)
-                        │   │           │
-                        │   │           ↓
-                        │   │    HTTP + RateLimiter
-                        │   │
-                        ↓   ↓
-                   PostgreSQL (audit)
+HTTP Request ──→ FastAPI Router ──→ XService ──→ get_provider(provider_key)
+                                              │
+                                              ↓
+                                    ┌─────────┴─────────┐
+                                    │   Provider SPI    │
+                                    │  (XProvider ABC)  │
+                                    └─────────┬─────────┘
+                                              │
+                    ┌─────────────────────────┼─────────────────────────┐
+                    │                         │                         │
+              ┌─────▼─────┐             ┌─────▼─────┐             ┌─────▼─────┐
+              │twitterapi │             │ official  │             │  apify    │
+              │   _io     │             │ _x API    │             │  scraper  │
+              └─────┬─────┘             └─────┬─────┘             └─────┬─────┘
+                    │                         │                         │
+              Client + Adapter          Client + Adapter          Client + Adapter
+                    │                         │                         │
+                    └─────────────────────────┴─────────────────────────┘
+                                              │
+                                              ↓
+                                   Normalized DTOs (XAccountInfo / XPost)
+                                              │
+                                              ↓
+                                    PostgreSQL (response_log)
 ```
 
-**Key layers**
+**Key design decisions**
 
-| Layer | Role |
+| Layer | What it does |
 |---|---|
-| **API** | FastAPI routers with Pydantic query validation and URL normalization |
-| **Service** | `XService` orchestrates provider calls and decorates them with `log_provider_call` |
-| **Provider (SPI)** | `XProvider` abstract class; current impl: `TwitterAPIIOProvider` via adapter + client |
+| **Router** | Validates query params; `provider_key` is injected from `XQuery` base model |
+| **Service** | `XService` orchestrates provider calls via `@log_provider_call` decorator |
+| **Provider SPI** | `XProvider` abstract class with 6 canonical methods; any source must implement it |
+| **Client** | Raw HTTP to a specific provider (handles auth, endpoints, pagination cursors) |
+| **Adapter** | Converts provider-specific JSON into normalized `XAccountInfo` / `XPost` |
 | **Persistence** | Async SQLAlchemy repository logs every request/response snapshot |
-| **Rate limiter** | `aiolimiter` instance per provider, injected at application lifespan |
+| **Rate limiter** | One `aiolimiter` per registered provider, injected at app lifespan |
 
 <br>
 
-## Endpoints
+## Add a provider in 4 steps
+
+1. Create `app/core/providers/<name>/` with `client.py`, `adapter.py`, `provider.py`
+2. Implement `XProvider` and translate raw JSON into `XAccountInfo` / `XPost`
+3. Register the key in `XProviderKey`, env prefix in `XProviders`, limiter in `lifespan`
+4. Add the provider to the `providers` dict in `get_provider()`
+
+The existing `twitterapi_io` package is the reference implementation (that actually works).
+
+<br>
+
+## Endpoints (provider-agnostic)
 
 | Route | What it does |
 |---|---|
@@ -124,6 +167,8 @@ Client ──→ FastAPI ──→ XService ──→ XProvider (SPI)
 | `GET /posts?tweet_ids=` | Posts by ID or URL (batch) |
 | `GET /posts/search?query=` | Full-text post search with time filters |
 | `GET /posts/replies?url_or_id=` | Reply threads with pagination |
+
+Every endpoint can accept `?provider_key=` to switch the active backend.
 
 <br>
 
