@@ -1,3 +1,5 @@
+# x-api-integration
+
 <p align="center">
   <samp>X Data Gateway</samp>
 </p>
@@ -9,13 +11,10 @@
   <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white"></a>
 </p>
 
-# x-api-integration
-
 <p align="center">
   <b>A plug-in async gateway for X/Twitter data.</b>
   <br>
   Project is ready to operate as a scalable micro-service, where you can add different Twitter(X) data providers according to existing structure. In real use case, allows to query different data providers to achieve API reliability and decrease costs.
-  Add providers without changing a single line of business logic.
   <br>
   One API contract. Normalized DTOs. Per-provider rate limits. Full audit trail.
 </p>
@@ -49,24 +48,20 @@ $ curl "http://localhost:8000/accounts?usernames=elonmusk&provider_key=twitterap
 }
 ```
 
-```bash
-docker compose up
-```
-
 <br>
 
 ## Why a gateway instead of calling providers directly?
 
-Every X data provider has its own endpoints, request formats, and response shapes. One returns `followers`, another `public_metrics.followers_count`. One uses `userId`, another `userName`.
+Every X data provider has its own endpoints, request formats, and response shapes. One returns `followersCount`, another `public_metrics.followers_count`. One uses `userId`, another `user_id`.
 
 | Problem | Raw HTTP to each provider API | x-api-integration |
 |---|---|---|
 | Switch provider | New base URL, new auth, new parsing logic | Change one query param (`?provider_key=`) |
-| Add a new source | Learn their docs, build a new client, connect everything again | Implement within 1 interface |
-| Data model drift | `user.followers` vs `public_metrics.followers_count` vs `stats.followerCount` | One `XAccountInfo` schema for every source |
+| Add a new source | Build a new client, connect everything again | Implement within 1 interface |
+| Data model drift | `public_metrics.followers_count` vs `stats.followerCount` | One `XAccountInfo` schema for every source |
 | Response normalization | Manual field mapping per provider | Adapter pattern ready for handling |
 | Rate limit burst | Each provider needs its own retry & backoff logic | Per-provider `aiolimiter` + auto-retry |
-| Response audit | None | Every provider call persisted in PostgreSQL |
+| Response audit | None | Every provider call has stats and persisted in PostgreSQL |
 | Batch lookups | Sequential HTTP calls | Concurrent `asyncio.gather` |
 | Cost visibility | Check each provider dashboard separately | `estimated_cost_usd` in every response |
 
@@ -85,7 +80,7 @@ Every X data provider has its own endpoints, request formats, and response shape
 
 <br>
 
-## Quick start
+## Quick local start
 
 ```bash
 # 1. Clone and configure
