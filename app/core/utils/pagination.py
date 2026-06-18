@@ -18,17 +18,3 @@ async def cursor_pagination(
         cursor = payload.get("next_cursor")
         if not cursor:
             return
-        if _page_item_count(payload) < page_size:
-            return
-
-
-# TODO: remove this guard when provider would fix has_next_page return value
-def _page_item_count(payload: dict[str, Any]) -> int:
-    for value in payload.values():
-        if isinstance(value, list):
-            return len(value)
-        if isinstance(value, dict):
-            for inner in value.values():
-                if isinstance(inner, list):
-                    return len(inner)
-    return 0
