@@ -1,0 +1,34 @@
+[project]
+name = "x-api-integration"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "aiolimiter>=1.2.1",
+    "alembic>=1.18.4",
+    "asyncpg>=0.31.0",
+    "fastapi>=0.136.3",
+    "httpx>=0.28.1",
+    "pydantic>=2.13.4",
+    "pydantic-settings>=2.14.1",
+    "sqlalchemy[asyncio]>=2.0.50",
+    "uvicorn>=0.48.0",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.6.0",
+    "ruff==0.15.14",
+]
+
+
+[tool.ruff]
+line-length = 88
+ 
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.ruff.lint.isort]
+no-sections = true
+
+[tool.ruff.format]
+quote-style = "double"
