@@ -25,6 +25,16 @@ dev = [
     "ruff==0.15.14",
 ]
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-v --tb=short --cov=app --cov-report=term-missing"
+markers = [
+    "unit: fast isolated tests with no I/O",
+    "integration: tests with mocked I/O (HTTP, DB)",
+]
 
 [tool.ruff]
 line-length = 88
