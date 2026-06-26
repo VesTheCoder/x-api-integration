@@ -41,6 +41,7 @@ class AsyncHTTPClient:
                         delay = REQUEST_DELAY_MS / 1000 * (2**attempt)
                         await asyncio.sleep(delay)
                         continue
+                    raise ProviderUnavailableError()
                 return response
             except httpx.RequestError as exc:
                 raise ProviderUnavailableError(str(exc)) from exc
