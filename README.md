@@ -98,6 +98,26 @@ curl "http://localhost:8000/accounts?usernames=elonmusk&provider_key=twitterapi_
 
 <br>
 
+## Testing
+
+```bash
+# Run all tests
+uv run pytest
+
+# Unit tests only
+uv run pytest -m unit
+
+# Integration tests only
+uv run pytest -m integration
+```
+
+| Layer | What's covered | How |
+|---|---|---|
+| **Unit** | Adapter field mapping, URL normalization, cost calculator | Plain function calls, no I/O |
+| **Integration** | HTTP client retry, provider partial-results, service logging, API endpoints, repository persistence | `respx` for HTTP mocks, in-memory SQLite for DB |
+
+<br>
+
 ## Architecture at a glance
 
 ```

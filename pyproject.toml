@@ -16,10 +16,25 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "aiosqlite>=0.22.1",
     "pre-commit>=4.6.0",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
+    "respx>=0.23.1",
     "ruff==0.15.14",
 ]
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-v --tb=short --cov=app --cov-report=term-missing"
+markers = [
+    "unit: fast isolated tests with no I/O",
+    "integration: tests with mocked I/O (HTTP, DB)",
+]
 
 [tool.ruff]
 line-length = 88
